@@ -164,105 +164,13 @@ def asignacion2(planasPorAsignar, calOperador, planas, Op, Tractor):
         
 
         return f_concatenado
-def sender ():
-    account_sid = 'AC53a449493940232f199fd2d6601ac007'
-    auth_token = '08e7151244f7c3bab5093b9448740efb'
-    client = Client(account_sid, auth_token)
-
-    # Formatear el mensaje
-    mensaje = (
-        "Hola [Nombre del Operador],\n\n"
-        "Te informamos sobre tu próximo viaje asignado:\n\n"
-        "Destino: [Ingresar destino]\n"
-        "Fecha y hora: [Ingresar fecha y hora]\n\n"
-        "Esta asignación considera tu historial de accidentes, puntualidad, destinos previos y respuestas a viajes anteriores.\n\n"
-        "Por favor, confirma si aceptas o rechazas este viaje con un \"Sí\" o \"No\".\n\n"
-        "Gracias,"
-    )
-
-    # Enviar el mensaje
-    message = client.messages.create(
-        from_='whatsapp:+14155238886',
-        body=mensaje,
-        to='whatsapp:+5218125906703'
-    )
 
 
 
 
 
-#@asignacionDIA.route('/enviar', methods=['POST'])
 
-def api_dia():
-    global f_concatenado
-    f_concatenado = f_concatenado[['IdSolicitud1', 'IdSolicitud2', 'IdRemolque1', 'IdRemolque2', 'IdTractor', 'IdOperador']]
-   
-    def token_api():
-        # URL de la API para autenticación
-        url = 'https://splpro.mx/ApiSpl/api/Login/authenticate'
 
-        # Credenciales para el inicio de sesión
-        credentials = {
-            'UserName': '21011',
-            'Password': 'Marvin12',
-            'IdEmpresa': 1
-        }
-
-        # Realiza la solicitud POST con las credenciales, desactivando la verificación de SSL
-        response = requests.post(url, json=credentials, verify=False)
-
-        # Extrae la respuesta en formato JSON
-        response_data = response.json()
-
-        # Verifica si la autenticación fue exitosa
-        if response.status_code == 200 and response_data.get('Success'):
-            # Extrae el token de la respuesta
-            token = response_data.get('Token')
-            print(f'Token recibido: {token}')
-            return token
-        else:
-            print(f'Error en la solicitud: {response.status_code}')
-            print(f'Mensaje del error: {response_data.get("Message")}')
-            return None
-
-        # Suprime advertencias de SSL (opcional, sólo para limpiar la salida si no te preocupa la seguridad)
-        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
-    # Obtener token válido
-    token = token_api()
-
-    # URL de la API para realizar la operación de unir solicitudes
-    url = 'https://splpro.mx/ApiSpl/api/ArmadoFull/UnirSolicitudes'
-
-    # Datos a enviar en el JSON
-    payload = {
-        'IdSolicitud1': '5',
-        'IdSolicitud2': '6',
-        'IdRemolque1': '3',
-        'IdRemolque2': '4',
-        'IdTractor': '5',
-        'IdOperador': '6'
-    }
-
-    # Encabezados HTTP necesarios para la autenticación con token
-    headers = {
-        'Authorization': f'Bearer {token}',
-        'Content-Type': 'application/json'
-    }
-
-    # Realiza la solicitud POST
-    response = requests.post(url, json=payload, headers=headers, verify=False)
-
-    # Verifica si la solicitud fue exitosa
-    if response.status_code == 200:
-        print("Solicitud procesada correctamente")
-        print(response.json())  # Imprimir respuesta del servidor
-    else:
-        print(f"Error en la solicitud: {response.status_code}")
-        print(response.text)  # Imprimir mensaje de error
-
-    # Suprime advertencias de SSL (opcional)
-    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 def api_dias():
     global f_concatenado
