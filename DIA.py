@@ -77,7 +77,6 @@ def cargar_datos():
 
 def planas_en_patio(planas):
     planas['Horas en patio'] = ((datetime.now() - planas['FechaEstatus']).dt.total_seconds() / 3600.0).round(1)
-    #planas['FechaEstatus'] = planas['FechaEstatus'].dt.strftime('%Y-%m-%d %H:%M')
     planas['ValorViaje'] = planas['ValorViaje'].apply(lambda x: "${:,.0f}".format(x))
     planas.sort_values(by=['FechaEstatus'], ascending=True, inplace=True)
     planas.reset_index(drop=True, inplace=True)
@@ -243,7 +242,7 @@ def procesar_planas(planas):
             combined_df['IDe'] = np.nan 
 
         else:
-            combined_df = pd.merge(noAsignadas, paresAdiferenteCiudad, how='left', on='Destino')    
+            combined_df = pd.merge(noAsignadas, paresAdiferenteCiudad, how='left', left_on='City', right_on='Destino')    
             combined_df = combined_df [['Remolque', 'Ruta', 'ValorViaje', 'IDe', 'FechaEstatus']]
             combined_df.sort_values(by= 'IDe', ascending=True, inplace=True)
             
@@ -280,7 +279,7 @@ def procesar_planas(planas):
             df_empates_dobles['Fecha Más Antigua'] = np.where(df_empates_dobles['Fecha Estatus_a'] < df_empates_dobles['Fecha Estatus_b'],
                                                     df_empates_dobles['Fecha Estatus_a'],
                                                         df_empates_dobles['Fecha Estatus_b'])
-            limite = ahora - timedelta(hourasMaxDifDestino)
+            limite = ahora - timedelta(hours=hourasMaxDifDestino)
 
             #Filtrar el DataFrame para quedarte solo con las filas cuya 'Fecha Estatus_a' sea mayor a 24 horas atrás
             df_empates_dobles= df_empates_dobles[df_empates_dobles['Fecha Más Antigua'] < limite]
@@ -295,7 +294,7 @@ def procesar_planas(planas):
         #Planas sin pares al mismo destino a destinos cercanos
         nones_df= combined_df[pd.isna(combined_df['IDe'])]
         ahora = datetime.now()
-        limite = ahora - timedelta(hourasMaxNones)
+        limite = ahora - timedelta(hours=hourasMaxNones)
 
         #Filtrar el DataFrame para quedarte solo con las filas cuya 'Fecha Estatus_a' sea mayor a 24 horas atrás
         nones_df= nones_df[nones_df['FechaEstatus'] < limite]
@@ -451,26 +450,6 @@ def asignacionesPasadasOp(Cartas):
     # Crear una tabla pivote para contar la cantidad de 'Bueno', 'Malo' y 'Regular' para cada operador
     CP = pd.pivot_table(CP, index='Operador', columns='TipoViaje', aggfunc='size', fill_value=0)
 
-    ''' 
-    # Calculo de Puntajes
-    CP['Puntajes'] = CP['Bueno'] - CP['Malo']
-
-    (CP['Malo']*2)
-
-    # Funsion para asiganar puntaje
-    def Puntaje(puntajes):
-        if puntajes >= 2:
-            return 30
-        elif puntajes <= -2:
-            return 50
-        else:
-            return 40
-        
-    # Asignar los puntajes por fila
-    CP['CalificacionVianjesAnteiores'] = CP['Puntajes'].apply(lambda puntajes: Puntaje(puntajes))
-    
-    # Resetear el índice para obtener 'Operador' como una columna
-    '''
     # Define los pesos
     P1 = 2
     P2 = 1
@@ -679,9 +658,6 @@ def asignacion2(planasPorAsignar, calOperador, planas, Op, Tractor):
         
 
         return f_concatenado
-
-
-
 
 
 def api_dias():
