@@ -329,6 +329,8 @@ def procesar_planas(planas):
         df_concatenado = pd.concat([df_concatenado , nones_df], ignore_index=True)
 
         # Calcular valor total del viaje
+        df_concatenado['ValorViaje_a'] = df_concatenado['ValorViaje_a'].replace('[\$,]', '', regex=True).astype(float)
+        df_concatenado['ValorViaje_b'] = df_concatenado['ValorViaje_b'].replace('[\$,]', '', regex=True).astype(float)
         df_concatenado['Monto'] = df_concatenado['ValorViaje_a'] + df_concatenado['ValorViaje_b']
 
         # Definir la fecha y hora actual
@@ -355,13 +357,16 @@ def procesar_planas(planas):
         # Llenar NaN con ceros solo en las columnas seleccionadas
         df_concatenado.fillna(value=columns_to_fill, inplace=True)
 
+
         # Calcular valor total del viaje
-        df_concatenado['Monto'] = df_concatenado['ValorViaje_a'] + df_concatenado['ValorViaje_b']
+        #df_concatenado['Monto'] = df_concatenado['ValorViaje_a'] + df_concatenado['ValorViaje_b']
         #df_concatenado['Monto'] = df_concatenado['Monto'].map('{:,.0f}'.format)
+        
         
         #Calcular horas en patio
         df_concatenado['Horas en Patio'] = ((ahora - df_concatenado['Fecha Más Antigua']).dt.total_seconds()/3600).round(1) 
         df_concatenado = df_concatenado[['Ruta', 'remolque_a', 'remolque_b', 'Monto', 'Horas en Patio']]
+        #df_concatenado = df_concatenado[['Ruta', 'remolque_a', 'remolque_b', 'ValorViaje_a', 'ValorViaje_b', 'Horas en Patio']]
         df_concatenado= df_concatenado[df_concatenado['Ruta'] != 'MONTERREY-ALLENDE']
 
         df_concatenado.reset_index(drop=True, inplace=True)
@@ -370,6 +375,8 @@ def procesar_planas(planas):
 
         
         return df_concatenado
+
+    
     
     return matchFinal(planas)
 
@@ -566,15 +573,18 @@ def asignacion2(planasPorAsignar, calOperador, planas, Op, Tractor):
         calOperador= calOperador[calOperador['Bloqueado Por Seguridad'].isin(['No'])]
         calOperador= calOperador[calOperador['Permiso'].isin(['No'])]
             
-        operardorNon = calOperador[calOperador ['UOperativa_y'].isin([ 'U.O. 15 ACERO (ENCORTINADOS)', 'U.O. 41 ACERO LOCAL (BIG COIL)', 'U.O. 52 ACERO (ENCORTINADOS SCANIA)'])]
+        izi = calOperador.copy()
+        operardorNon = calOperador[calOperador ['Operativa'].isin([ 'U.O. 15 ACERO (ENCORTINADOS)', 'U.O. 41 ACERO LOCAL (BIG COIL)', 'U.O. 52 ACERO (ENCORTINADOS SCANIA)'])]
         #Crear una columna auxiliar para priorizar 'U.O. 41 ACERO LOCAL (BIG COIL)'
-        operardorNon['priority'] = (operardorNon['UOperativa_y'] == 'U.O. 41 ACERO LOCAL (BIG COIL)').astype(int)
+        operardorNon['priority'] = (operardorNon['Operativa'] == 'U.O. 41 ACERO LOCAL (BIG COIL)').astype(int)
+        
         operardorNon = operardorNon.sort_values(by=['priority', 'CalFinal', 'Tiempo Disponible'],ascending=[False, False, False])
         operardorNon = operardorNon.reset_index(drop=True)
         operardorNon.index = operardorNon.index + 1
         operardorNon.drop(columns=['priority'], inplace=True)
         
-        operadorFull = calOperador[calOperador['UOperativa_y'].isin(['U.O. 01 ACERO', 'U.O. 02 ACERO', 'U.O. 03 ACERO', 'U.O. 04 ACERO', 'U.O. 07 ACERO','U.O. 39 ACERO'])]
+        
+        operadorFull = calOperador[calOperador['Operativa'].isin(['U.O. 01 ACERO', 'U.O. 02 ACERO', 'U.O. 03 ACERO', 'U.O. 04 ACERO', 'U.O. 07 ACERO','U.O. 39 ACERO'])]
         operadorFull = operadorFull.sort_values(by=['CalFinal', 'Tiempo Disponible'], ascending=[False, False])
         operadorFull = operadorFull.reset_index(drop=True)
         operadorFull.index = operadorFull.index + 1
@@ -614,7 +624,7 @@ def asignacion2(planasPorAsignar, calOperador, planas, Op, Tractor):
         }, inplace=True)
         
         f_concatenado = f_concatenado[f_concatenado['Operador'].notna()]
-       
+        
         return f_concatenado
     else:
         calOperador= calOperador[calOperador['Bloqueado Por Seguridad'].isin(['No'])]
@@ -655,7 +665,8 @@ def asignacion2(planasPorAsignar, calOperador, planas, Op, Tractor):
 
         f_concatenado = f_concatenado[f_concatenado['Operador'].notna()]
         
-        
+        a =asignacion2(planasPorAsignar, calOperador, planas, Op, Tractor)
+        print(a)
 
         return f_concatenado
 
