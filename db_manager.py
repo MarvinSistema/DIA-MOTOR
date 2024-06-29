@@ -1,5 +1,3 @@
-from sqlalchemy import create_engine
-from sqlalchemy.exc import SQLAlchemyError
 import pandas as pd
 import pyodbc
 from config import DB_CONFIG, DB_CONFIG_PRO

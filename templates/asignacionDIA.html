@@ -10,25 +10,7 @@
         <h1>D I A</h1>
         <img src="{{ url_for('static', filename='images/logoZinergia.png') }}" alt="Logo Zinergia" class="logo">
     </div>
-    
-    <div class="menu">
-        <a href="/home">HOME</a>
-        <a href="/about">ABOUT</a>
-        <a href="/contact">CONTACT</a>
-    </div>
-
-    <div class="contenedor-principal">
-        <div class="titulo-tabla-container">
-            <h1>PLANAS POR ASIGNAR</h1>
-            <!-- Aquí se insertarán los datos renderizados -->
-            {{ datos_html|safe }}
-        </div>
-        <div class="contenedor-botones">
-            <a href="/planasPorAsignar">
-                <img src="{{ url_for('static', filename='images/flechaIzquierda.png') }}" alt="Flecha" class="flecha-izquierda">
-            </a>
-        </div>
-    </div>
-
+    <!-- Aquí se insertarán los datos renderizados -->
+    {{ datos_html|safe }}
 </body>
 </html>

@@ -11,9 +11,8 @@ from sklearn.metrics import DistanceMetric
 
 from db_manager import fetch_data, fetch_data_PRO
 
-DIA = Blueprint('DIA1', __name__)
-
-@DIA.route('/')
+asignacionDIA = Blueprint('asignacionDIA', __name__)
+@asignacionDIA.route('/')
 def index():
     global f_concatenado
     f_concatenado = None
@@ -26,12 +25,12 @@ def index():
     siniestroKm= siniestralidad(Gasto, Km)
     ETAi= eta(ETAs)
     PermisosOp= permisosOperador(Permisos)
-    calOperadores, operadorNon, operadorFull = calOperador(operadores_sin_asignacion, Bloqueo, asignacionesPasadasOperadores, siniestroKm, ETAi, PermisosOp)
+    calOperadores= calOperador(operadores_sin_asignacion, Bloqueo, asignacionesPasadasOperadores, siniestroKm, ETAi, PermisosOp)
     f_concatenado = asignacion2(planasPorAsignar, calOperadores, planas, Op, Tractor)
     #a = api_dias()
     datos_html = f_concatenado.to_html()
     
-    return render_template('planasPorAsignar.html', operadoresNon=datos_html,  operadoresFull=datos_html, datos_html_empates_dobles=datos_html)
+    return render_template('asignacionDIA.html', datos_html=datos_html)
 
 def cargar_datos():
     consulta_planas = """
@@ -419,20 +418,7 @@ def calOperador(operadores_sin_asignacion, Bloqueo, asignacionesPasadasOp, sinie
         'Viaje Cancelado': 'Actitud'
         }, inplace=True)
     
-    operadorNon = calOperador[calOperador ['Operativa'].isin([ 'U.O. 15 ACERO (ENCORTINADOS)', 'U.O. 41 ACERO LOCAL (BIG COIL)', 'U.O. 52 ACERO (ENCORTINADOS SCANIA)'])]
-    operadorFull = calOperador[calOperador['Operativa'].isin(['U.O. 01 ACERO', 'U.O. 02 ACERO', 'U.O. 03 ACERO', 'U.O. 04 ACERO', 'U.O. 07 ACERO','U.O. 39 ACERO'])]
-
-    operadorFull = operadorFull.sort_values(by=['Bloqueado Por Seguridad', 'CalFinal'], ascending=[True, False])
-    operadorNon = operadorNon.sort_values(by=['Bloqueado Por Seguridad', 'CalFinal'], ascending=[True, False])
-
-    operadorFull = operadorFull.reset_index(drop=True)
-    operadorFull.index = operadorFull.index + 1
-    
-    operadorNon = operadorNon.reset_index(drop=True)
-    operadorNon.index = operadorNon.index + 1
-
-
-    return calOperador, operadorNon, operadorFull
+    return calOperador
 
 def asignacionesPasadasOp(Cartas):
     CP= Cartas.copy()

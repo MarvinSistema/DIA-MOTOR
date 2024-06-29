@@ -1,509 +1,65 @@
 body {
-    font-family: Arial, sans-serif;
-    margin: 0;
-    padding: 0;
-    background-color: #312c2c;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-}
-.header{
-    background: rgb(2,0,36);
-    background: linear-gradient(90deg, #020024 0%, #090979 41%, rgba(0,212,255,1) 100%);
-    color: #ffffff;
-    padding: 1px;
-    text-align: center;
-    width: 100%;
-    text-shadow: 1px 1px #665, 2px 2px #86D6D3, 3px 3px #666, 4px 4px #86D6D3;
-    font-size: 120%;
-    position: relative;
-}
-.header h1 {
-  font-size: 500%;
-  margin: 0 auto; 
-  padding: 0.1px 0;
-}
-.logo {
-    position: absolute;
-    top: 1%;
-    right: 0;
-    height: 80px;
-    width: auto; 
-}
-.menu {
-    display: flex;
-    justify-content: space-around;
-    padding: 10px;
-    background-color: #020024;
-    color: #fff;
-    width: 100%;
-}
-.menu a {
-    color: #fff;
-    text-decoration: none;
-}
-.card {
-  border-radius: 20px;
-  overflow: hidden;
-  text-align: center;
-  box-shadow: 0 5px 10px rgb(0, 0, 0);
-  width: 250px;
-  background: linear-gradient(90deg, #9557F8 0%, #256e80 100%);
-  cursor: pointer;
-  transition: transform 0.3s, box-shadow 0.3s;
-  color:#ffffff;
-  padding: 50px;
-  background-color: #c3c1c1;
-  border: 1px solid #333;
-  font-family: 'Arial', sans-serif;
-  margin: 10px;
-  font-family:Arial, Helvetica, sans-serif;
-}
-.card-container {
-    display: flex;
-    justify-content: space-around;
-    flex-wrap: wrap;
-    gap: 20px;
-    width: 100%;
-}
-.card-container a {
-  color: #fff;
-  text-decoration: none;
-}
-hr {
-color: #ffffff;
-}
-.card img {
-  width: 100%;
-  display: block;
-  border-bottom: 1px solid rgb(255, 255, 255); /* Opcional: añade una línea entre la imagen y el texto */
-}
-.card img.circular {
-  width: 150px; /* O el tamaño que desees */
-  height: 150px; /* Igual al ancho para una forma circular perfecta */
-  border-radius: 60%;
-  object-fit: cover; /* Asegura que la imagen cubra completamente el espacio sin distorsionarse */
-  display: block;
-  margin: 1px auto; /* Centra la imagen horizontalmente */
-}
-.card:hover {
-  transform: scale(1.06);
-  box-shadow: 0 8px 16px rgba(0,0,0,0.8);
-}
-.card-content {
-  padding: 20px;
-}
-.card-content h2 {
+  font-family: Arial, sans-serif;
   margin: 0;
   padding: 0;
+  background-color: #312c2c;
+}
+
+.header {
+  background: linear-gradient(90deg, #020024 0%, #090979 41%, rgba(0,212,255,1) 100%);
   color: #ffffff;
-  font-size: 24px;
-}
-.card-content p {
-  color: #555;
-  font-size: 16px;
-  line-height: 1.5;
-}
-.card-content .features {
-  list-style: none;
-  padding: 0;
-  margin: 10px 0;
-  color: #555;
-}
-.card-content .features li {
-  padding: 10px 0;
-}
-.card-content button {
-  background-color: #f4f4f4;
-  color: #000000;
-  border: none;
-  outline: none;
-  padding: 15px 30px;
-  text-transform: uppercase;
-  margin: 15px 0;
-  cursor: pointer;
-  width: 100%;
-  font-weight: bold;
-  border-radius: 20px;
-}
-.card-content button:hover {
-  background-color: #d5ccc2;
-}
-.card:focus, .card:hover {
-  transform: scale(1.10);
-  box-shadow: 0 8px 16px rgba(0,0,0,0.8);
-}
-@media (max-width: 600px) {
-.card {
-    width: calc(100% - 20px); /* Las tarjetas ocuparán todo el ancho en pantallas pequeñas */
-}
-
-.card-container {
-    padding: 0;
-}
-}
-.content-section {
-margin: 10px 30%;
-padding: 10px;
-background: white;
-box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-border-radius: 8px;
-}
-.card-about p {
+  padding: 5px 0;
   text-align: center;
-  hyphens: auto; /* Esto ayudará a manejar la separación de palabras al justificar el texto */
-}
-li{
-  font-weight: bold;
-  color: whitesmoke;
-}
-.footer {
-background-color: #333;
-color: #fff;
-text-align: center;
-padding: 0.1px;
-position: fixed;
-bottom: 0;
-width: 100%;
+  position: relative;
+  height: 80px;
 }
 
-
-
-.header-image {
-  width: 100%; /* Esto hará que la imagen se ajuste al ancho del contenedor */
-  max-height: 50px; /* Ajusta esto al alto máximo que prefieras */
-  object-fit: cover; /* Esto asegura que la imagen cubra el área sin distorsionarse */
-  display: block; /* Esto elimina cualquier margen extra por defecto */
+.header h1 {
+  font-size: 500%;
+  margin-top: -10px;  /* Ajusta este valor según necesites */
 }
 
-
-.card-target {
-  border-radius: 10px;
-  overflow: hidden;
-  text-align: center;
-  box-shadow: 0 20px 20px rgba(0, 0, 0, 0.2);
-  width: 25px;
-  background: linear-gradient(90deg, #b09e38 0%, #6e7a14 100%);
-  cursor: pointer;
-  transition: transform 0.3s, box-shadow 0.3s;
-  color:#09090c;
-  padding: 50px;
-  background-color: #c3c1c1;
-  border: 1px solid #333;
-  font-family: 'Arial', sans-serif;
-  margin: 10px;
-  font-family:Arial, Helvetica, sans-serif;
-
-}
-.card-about{
-  border-radius: 10px;
-  overflow: hidden;
-  text-align: center;
-  box-shadow: 0 20px 20px rgba(0, 0, 0, 0.2);
-  width: 250px;
-  background: linear-gradient(90deg, #e3e3e3 0%, #f8f8f8 100%);
-  cursor: pointer;
-  transition: transform 0.3s, box-shadow 0.3s;
-  color:#09090c;
-  padding: 40px;
-  background-color: #c3c1c1;
-  border: 1px solid #333;
-  font-family: 'Arial', sans-serif;
-  margin: 10px;
-  font-family:Arial, Helvetica, sans-serif;
+.logo {
+  position: absolute;
+  top: 10px;
+  right: 20px;
+  height: 80px;
+  width: auto;
 }
 
-
-
-.card-icon {
-  width: 100px;
-  height: auto;
-  margin-bottom: 1em;
-  border-bottom: 1px solid rgba(255,255,255,0.3);
-}
-
-
-.card-container img.card-icon {
-  width: 150px; /* O el tamaño que desees */
-  height: 150px; /* Igual al ancho para una forma circular perfecta */
-  border-radius: 60%;
-  object-fit: cover; /* Asegura que la imagen cubra completamente el espacio sin distorsionarse */
-  display: block;
-  margin: 1px auto; /* Centra la imagen horizontalmente */
-  border: 3px solid black;
-}
-
-/*estilos contacto*/
-contact-container {
-  display: flex;
-  justify-content: space-around; /* Espaciado uniforme */
-  padding: 40px;
-  flex-wrap: wrap; /* Asegurar responsividad */
-}
-
-.form-container {
-  background-color: #ffffff;
-  padding: 25px;
-  border-radius: 8px;
-  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-  flex: 1 1 45%; /* Flexibilidad y ancho */
-  margin: 10px;
-  max-width: 500px; /* Ancho máximo para el formulario */
-}
-
-.input-box {
-  margin-bottom: 20px;
-}
-
-.input-box label {
-  display: block;
-  margin-bottom: 5px;
-  color: #333333; /* Color oscuro para el texto */
-}
-
-.input-box input[type=text],
-.input-box input[type=email],
-.input-box input[type=tel],
-.input-box textarea {
-  width: 100%;
-  padding: 12px;
-  margin-bottom: 10px;
-  border-radius: 4px;
-  border: 1px solid #cccccc;
-  box-sizing: border-box; /* Asegura que padding no afecte el ancho */
-}
-
-.privacy {
-  margin-bottom: 20px;
-}
-
-.submit-btn {
-  background-color: #007BFF; /* Color azul para el botón */
-  color: white;
-  border: none;
-  padding: 12px 20px;
-  text-transform: uppercase;
-  cursor: pointer;
-  border-radius: 4px;
-  transition: background-color 0.3s ease;
-}
-
-.submit-btn:hover {
-  background-color: #042140; /* Un tono de azul más oscuro para hover */
-}
-
-.info-container {
-  background-color: #ffffff;
-  padding: 25px;
-  border-radius: 8px;
-  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-  flex: 1 1 45%; /* Igual flexibilidad y ancho que el formulario */
-  margin: 10px;
-  max-width: 500px;
-}
-
-.info-container h2 {
-  color: #333333; /* Color oscuro para los títulos */
-  margin-bottom: 15px;
-}
-
-.info-container p {
-  color: #666666; /* Un gris más oscuro para el texto */
-  line-height: 1.6; /* Mejora la legibilidad del texto */
-}
-
-@media (max-width: 768px) {
-  .contact-container {
-    flex-direction: column;
-    padding: 20px;
-  }
-
-  .form-container,
-  .info-container {
-    width: 100%; /* El ancho se ajusta a la pantalla */
-    max-width: none;
-    flex: none;
-  }
-}
-
-
-
-
-
-
-/* Estilos generales para la tabla */
 table {
   border-collapse: collapse;
-  width: 100%;
-  margin: auto;
-  border-collapse: collapse;
+  width: 90%; /* Ajusta el ancho de la tabla */
+  margin: 20px auto; /* Centra la tabla horizontalmente */
   table-layout: auto;
 }
 
 th, td {
   border: 1px solid #ddd;
-  padding: 4px 10px;
+  padding: 8px;
   text-align: left;
 }
 
 th {
-  background-color: #00061c; /* Color de fondo para los encabezados de la tabla */
+  background-color: #00061c;
   color: white;
 }
 
 tr:nth-child(even) {
-  background-color: #f2f2f2; /* Fondo gris claro para filas pares */
+  background-color: #f2f2f2;
 }
 
 tr:nth-child(odd) {
-  background-color: white; /* Fondo blanco para filas impares */
+  background-color: white;
 }
 
 tr:hover {
-  background-color: #ddd; /* Fondo al pasar el ratón sobre la fila */
+  background-color: #ddd;
 }
 
-/* Estilos para el contenedor del título y la tabla */
-.titulo-tabla-container {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center; /* Centra todos los hijos en la dirección de la cruz */
-  color: rgb(115, 115, 115);
-}
-.titulo-tabla-container_b {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center; /* Centra todos los hijos en la dirección de la cruz */
-  color: rgb(115, 115, 115);
-}
-
-.titulo-tabla-container h1 {
-  color: honeydew; /* Color para el título de la tabla */
-}
-.titulo-tabla-container_b h1 {
-  color: honeydew; /* Color para el título de la tabla */
-}
-
-/* Estilos para la imagen de la flecha */
-.titulo-tabla-container img {
-  position: absolute;
-  right: -150px; /* Ajusta la distancia desde el borde derecho del contenedor */
-  top: 50%;
-  transform: translateY(-50%); /* Centra la imagen verticalmente */
-  width: 100px; /* Ancho de la flecha */
-  height: auto; /* Mantiene la proporción de aspecto de la imagen */
-}
-.titulo-tabla-container_b img {
-  position: absolute;
-  left: -150px; /* Ajusta la distancia desde el borde derecho del contenedor */
-  top: 75%;
-  transform: translateY(-50%); /* Centra la imagen verticalmente */
-  width: 100px; /* Ancho de la flecha */
-  height: auto; /* Mantiene la proporción de aspecto de la imagen */
-}
-
-
-
-/* Estilos para la imagen de la flecha izquierda */
-.titulo-tabla-container_b .flecha-izquierda {
-  position: absolute;
-  left: 0; /* Ajusta a la izquierda del contenedor */
-  top: 50%;
-  transform: translateY(-50%);
-  width: 100px; /* Ancho de la flecha */
-  height: auto; /* Mantiene la proporción de aspecto de la imagen */
-}
-
-/* Estilos para la imagen de la flecha derecha */
-.titulo-tabla-container_b .flecha-derecha {
-  position: absolute;
-  right: -300px; /* Ajusta a la derecha del contenedor */
-  top: 50%;
-  transform: translateY(-50%);
-  width: 100px; /* Ancho de la flecha */
-  height: auto; /* Mantiene la proporción de aspecto de la imagen */
-}
-
-/* Estilos para pantallas más pequeñas */
-@media screen and (max-width: 768px) {
-  .titulo-tabla-container_b .flecha-izquierda,
-  .titulo-tabla-container_b .flecha-derecha {
-    width: 50px; /* Reduce el tamaño de las flechas para pantallas pequeñas */
-    /* Ajusta las posiciones si es necesario */
-  }
-}
-  
-  
-
-
-
-
-/* Estilos para el contenedor principal */
 .contenedor-principal {
   display: flex;
-  justify-content: space-between; /* Separa la tabla y los botones */
+  justify-content: center; /* Centra la tabla horizontalmente */
+  flex-direction: column; /* Asegura que los elementos están uno sobre otro */
   align-items: center;
-  position: relative; /* Posicionamiento relativo para posicionar absolutamente los hijos si es necesario */
-}
-
-/* Estilos para el título de la tabla y la tabla misma */
-.titulo-tabla-container {
-  flex-grow: 1; /* Permite que la tabla crezca para ocupar el espacio disponible */
-  align-items: center; /* Alinea el título en el centro */
-  color: rgb(115, 115, 115);
-}
-
-.titulo-tabla-container h1 {
-  color: honeydew; /* Color para el título de la tabla */
-}
-
-/* Estilos para el contenedor de botones */
-.contenedor-botones {
-  display: flex; /* Usa flexbox para alinear los botones */
-}
-
-.contenedor-botones a {
-  margin-left: 10px; /* Espacio entre los botones */
-}
-
-/* Puedes ajustar el tamaño de tus imágenes según sea necesario */
-.contenedor-botones img {
-  width: 100px;
-  height: auto;
-}
-
-@media screen and (max-width: 768px) {
-  .contenedor-botones img {
-    width: 50px; /* Tamaño más pequeño para pantallas pequeñas */
-  }
-}
-
-.flecha-izquierda{
-  position: absolute;
-  left: -200px; /* Ajusta a la derecha del contenedor */
-  top: 50%;
-  transform: translateY(-50%);
-  width: 100px; /* Ancho de la flecha */
-  height: auto; /* Mantiene la proporción de aspecto de la imagen */
-}
-
-.boton-asignar {
-  background-color: transparent; /* Fondo transparente para integrar mejor el botón con el diseño */
-  border: none; /* Sin bordes para un look más limpio */
-  padding: 5px 10px; /* Reducir el padding para disminuir el tamaño general del botón */
-  cursor: pointer; /* Cursor en forma de mano para interactividad */
-  border-radius: 5px; /* Bordes redondeados para suavidad */
-  transition-duration: 0.4s; /* Transición suave para efectos de mouse */
-}
-
-.boton-asignar img {
-  width: 100px; /* Reducir el tamaño de la imagen para ajustar al diseño más pequeño */
-  height: auto; /* Mantener la proporción de la imagen */
-}
-
-.boton-asignar:hover {
-  background-color: rgba(0, 212, 255, 0.8); /* Color de fondo al pasar el ratón para mantener consistencia con el estilo del header */
 }
