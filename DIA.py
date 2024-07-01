@@ -27,7 +27,7 @@ def index():
     PermisosOp= permisosOperador(Permisos)
     calOperadores= calOperador(operadores_sin_asignacion, Bloqueo, asignacionesPasadasOperadores, siniestroKm, ETAi, PermisosOp)
     f_concatenado = asignacion2(planasPorAsignar, calOperadores, planas, Op, Tractor)
-    #a = api_dias()
+    a = api_dia()
     datos_html = f_concatenado.to_html()
     
     return render_template('asignacionDIA.html', datos_html=datos_html)
@@ -48,8 +48,8 @@ def cargar_datos():
         SELECT * 
         FROM DimTableroControl
         """
-    consultaOp= "SElECT * FROM DimOperadores"
-    consultaTrac= "SElECT * FROM Cat_Tractor"
+    consultaOp= "SElECT * FROM DimOperadores Where Activo = 'Si'"
+    consultaTrac= "SElECT * FROM Cat_Tractor Where Activo = 'Si'"
     ConsultaCartas = f"SELECT * FROM ReporteCartasPorte WHERE FechaSalida > '2024-01-01'"
     ConsultaGasto= f"SELECT *   FROM DimReporteUnificado"
     ConsultaKm = f"SELECT *   FROM DimRentabilidadLiquidacion"
@@ -670,10 +670,9 @@ def asignacion2(planasPorAsignar, calOperador, planas, Op, Tractor):
 
         return f_concatenado
 
-
-def api_dias():
+def api_dia():
     global f_concatenado
-    f_concatenado = f_concatenado[['IdSolicitud1', 'IdSolicitud2', 'IdRemolque1', 'IdRemolque2', 'IdTractor', 'IdOperador']]
+    a = f_concatenado[['IdSolicitud1', 'IdSolicitud2', 'IdRemolque1', 'IdRemolque2', 'IdTractor', 'IdOperador']]
 
     def token_api():
         url = 'https://splpro.mx/ApiSpl/api/Login/authenticate'
@@ -704,8 +703,11 @@ def api_dias():
         }
         url = 'https://splpro.mx/ApiSpl/api/ArmadoFull/UnirSolicitudes'
         
+        
+        a = a.fillna(0)  # Rellena los NaN con 0
+        
         # Itera sobre cada fila del DataFrame y envía una solicitud por cada fila
-        for index, row in f_concatenado.iterrows():
+        for index, row in a.iterrows():
             payload = {
                 'IdSolicitud1': int(row['IdSolicitud1']),
                 'IdSolicitud2': int(row['IdSolicitud2']),
@@ -726,4 +728,4 @@ def api_dias():
         # Suprime advertencias de SSL (opcional)
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-
+    return a
