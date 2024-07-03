@@ -25,7 +25,8 @@ def index():
     siniestroKm= siniestralidad(Gasto, Km)
     ETAi= eta(ETAs)
     PermisosOp= permisosOperador(Permisos)
-    calOperadores= calOperador(operadores_sin_asignacion, Bloqueo, asignacionesPasadasOperadores, siniestroKm, ETAi, PermisosOp)
+    cerca = cercaU()
+    calOperadores= calOperador(operadores_sin_asignacion, Bloqueo, asignacionesPasadasOperadores, siniestroKm, ETAi, PermisosOp, cerca)
     f_concatenado = asignacion2(planasPorAsignar, calOperadores, planas, Op, Tractor)
     a = api_dia()
     datos_html = f_concatenado.to_html()
@@ -380,12 +381,14 @@ def procesar_planas(planas):
     
     return matchFinal(planas)
 
-def calOperador(operadores_sin_asignacion, Bloqueo, asignacionesPasadasOp, siniestroKm, ETAi, PermisosOp):
+def calOperador(operadores_sin_asignacion, Bloqueo, asignacionesPasadasOp, siniestroKm, ETAi, PermisosOp, cerca):
     calOperador= operadores_sin_asignacion.copy()
     calOperador= pd.merge(operadores_sin_asignacion, Bloqueo, left_on='Operador', right_on='NombreOperador', how='left')
+    calOperador=calOperador[calOperador['Tractor'].isin(cerca['cve_uni'])]
     calOperador= pd.merge(calOperador, asignacionesPasadasOp, left_on='Operador', right_on='Operador', how='left')
     calOperador= pd.merge(calOperador, siniestroKm, left_on='Tractor', right_on='Tractor', how='left')
     calOperador= pd.merge(calOperador, ETAi, left_on='Operador', right_on='NombreOperador', how='left')
+    calOperador['Calificacion SAC'] = calOperador['Calificacion SAC'].fillna(0)
     calOperador= pd.merge(calOperador, PermisosOp, left_on='Operador', right_on='Nombre', how='left')
     calOperador['ViajeCancelado']= 20
 
@@ -588,6 +591,23 @@ def asignacion2(planasPorAsignar, calOperador, planas, Op, Tractor):
         operadorFull = operadorFull.sort_values(by=['CalFinal', 'Tiempo Disponible'], ascending=[False, False])
         operadorFull = operadorFull.reset_index(drop=True)
         operadorFull.index = operadorFull.index + 1
+                
+        def prioridad():
+            peso_urgencia = 0.65
+            peso_paga = 0.35
+
+            # Normalización de los datos
+            max_horas = 24
+            max_monto = planasPorAsignar['Monto'].max()
+
+            planasPorAsignar['norm_urgencia'] = planasPorAsignar['Horas en Patio'] / max_horas
+            planasPorAsignar['norm_monto'] = planasPorAsignar['Monto'] / max_monto
+
+            # Calcula el puntaje de prioridad usando las ponderaciones
+            planasPorAsignar['Puntaje de Prioridad'] = (peso_urgencia * planasPorAsignar['norm_urgencia']) + (peso_paga * planasPorAsignar['norm_monto'])
+            
+            return planasPorAsignar  
+        planasPorAsignar = prioridad()
         
         planasNon = planasPorAsignar[planasPorAsignar['remolque_b'] == 0]
         planasNon = planasNon.sort_values(by='Monto', ascending=False)
@@ -633,8 +653,25 @@ def asignacion2(planasPorAsignar, calOperador, planas, Op, Tractor):
         calOperador = calOperador.sort_values(by=['CalFinal', 'Tiempo Disponible'], ascending=[False, False])
         calOperador = calOperador.reset_index(drop=True)
         calOperador.index = calOperador.index + 1
-
         
+        def prioridad():
+            peso_urgencia = 0.65
+            peso_paga = 0.35
+
+            # Normalización de los datos
+            max_horas = 24
+            max_monto = planasPorAsignar['Monto'].max()
+
+            planasPorAsignar['norm_urgencia'] = planasPorAsignar['Horas en Patio'] / max_horas
+            planasPorAsignar['norm_monto'] = planasPorAsignar['Monto'] / max_monto
+
+            # Calcula el puntaje de prioridad usando las ponderaciones
+            planasPorAsignar['Puntaje de Prioridad'] = (peso_urgencia * planasPorAsignar['norm_urgencia']) + (peso_paga * planasPorAsignar['norm_monto'])
+            
+            return planasPorAsignar  
+        planasPorAsignar = prioridad()         
+        
+                
         planasPorAsignar = planasPorAsignar.sort_values(by='Monto', ascending=False)
         planasPorAsignar = planasPorAsignar.reset_index(drop=True)
         planasPorAsignar.index = planasPorAsignar.index + 1
@@ -665,9 +702,6 @@ def asignacion2(planasPorAsignar, calOperador, planas, Op, Tractor):
 
         f_concatenado = f_concatenado[f_concatenado['Operador'].notna()]
         
-        a =asignacion2(planasPorAsignar, calOperador, planas, Op, Tractor)
-        print(a)
-
         return f_concatenado
 
 def api_dia():
@@ -729,3 +763,43 @@ def api_dia():
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
     return a
+
+def cercaU():
+    # Paso 1: Login y obtención del token
+    url_login = 'http://74.208.129.205:3000/loginUser'
+    payload_login = {
+        'Usuario':  os.getenv('USUARIOTRACK'),
+        'Password': os.getenv('PASSWORDTRACK')
+    }
+    
+    
+    # Intento de login
+    response_login = requests.post(url_login, json=payload_login)
+    if response_login.status_code != 200:
+        print("Error en la conexión para login:", response_login.status_code)
+        print("Detalle del error:", response_login.text)
+        return None
+
+    # Extracción del token
+    token = response_login.json().get('token')
+    print("Conexión exitosa para login! Token obtenido.")
+
+    # Paso 2: Obtención de datos usando el token
+    url_datos = 'http://74.208.129.205:3000/clientes/GNYC/TableroDeControlSPL'
+    headers_datos = {'Authorization': f'Bearer {token}'}
+    body_datos = {'idEmpresa': 1}
+    
+    # Solicitud de datos
+    response_datos = requests.post(url_datos, headers=headers_datos, json=body_datos)
+    if response_datos.status_code != 200:
+        print("Error en la conexión para obtener datos:", response_datos.status_code)
+        print("Detalle del error:", response_datos.text)
+        return None
+
+    # Conversión de los datos a DataFrame
+    datos_empresa = response_datos.json()
+    cerca= pd.DataFrame(datos_empresa)
+    print("Conexión exitosa para obtener datos de la empresa!")
+    cerca = cerca.loc[cerca['localizacion'] == '0.00 Km. NYC MONTERREY']
+    cerca= cerca[['cve_uni']]
+    return cerca
