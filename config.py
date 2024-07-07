@@ -20,3 +20,11 @@ DB_CONFIG_PRO = {
     "password": os.getenv('DB_PRO_PASSWORD', 'default_pro_password'),
     "driver": os.getenv('DB_PRO_DRIVER', 'ODBC Driver 17 for SQL Server').replace('+', ' ')
 }
+
+DB_CONFIG_DIA = {
+    "server": os.getenv('DB_SERVER_DIA', 'default_server'),
+    "database": os.getenv('DB_DATABASE_DIA', 'default_database'),
+    "username": os.getenv('DB_USERNAME', 'default_user'),
+    "password": os.getenv('DB_PASSWORD', 'default_password'),
+    "driver": os.getenv('DB_DRIVER', 'ODBC Driver 17 for SQL Server').replace('+', ' ')
+}

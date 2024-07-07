@@ -1,6 +1,7 @@
 import os
 from datetime import datetime, timedelta
 
+
 import networkx as nx
 import numpy as np
 import pandas as pd
@@ -9,26 +10,29 @@ import urllib3
 from flask import Blueprint, render_template
 from sklearn.metrics import DistanceMetric
 
-from db_manager import fetch_data, fetch_data_PRO
+from db_manager import fetch_data, fetch_data_PRO, fetch_data_DIA, create_engine_db_DIA
 
 asignacionDIA = Blueprint('asignacionDIA', __name__)
 @asignacionDIA.route('/')
 def index():
     global f_concatenado
     f_concatenado = None
-    
-    planas, Operadores, Cartas, Gasto, Km, Bloqueo, ETAs, Permisos, Op, Tractor  = cargar_datos()
-    planasPatio = planas_en_patio(planas)
+    #d=borrar_datos_antiguos() #Elimino datos de mi base de datos por costos
+    planas, Operadores, Cartas, Gasto, Km, Bloqueo, ETAs, Permisos, Op, Tractor, DataDIA  = cargar_datos()
+    planasPatio = planas_en_patio(planas, DataDIA)
     planasPorAsignar = procesar_planas(planasPatio)
-    operadores_sin_asignacion = procesar_operadores(Operadores)
+    operadores_sin_asignacion = procesar_operadores(Operadores, DataDIA)
     asignacionesPasadasOperadores=  asignacionesPasadasOp(Cartas)
     siniestroKm= siniestralidad(Gasto, Km)
     ETAi= eta(ETAs)
     PermisosOp= permisosOperador(Permisos)
     cerca = cercaU()
+    b=insertar_datos()
     calOperadores= calOperador(operadores_sin_asignacion, Bloqueo, asignacionesPasadasOperadores, siniestroKm, ETAi, PermisosOp, cerca)
     f_concatenado = asignacion2(planasPorAsignar, calOperadores, planas, Op, Tractor)
     a = api_dia()
+    b=insertar_datos()
+    d=borrar_datos_antiguos()
     datos_html = f_concatenado.to_html()
     
     return render_template('asignacionDIA.html', datos_html=datos_html)
@@ -54,7 +58,6 @@ def cargar_datos():
     ConsultaCartas = f"SELECT * FROM ReporteCartasPorte WHERE FechaSalida > '2024-01-01'"
     ConsultaGasto= f"SELECT *   FROM DimReporteUnificado"
     ConsultaKm = f"SELECT *   FROM DimRentabilidadLiquidacion"
-    ConsultaBloqueo = f"SELECT *   FROM DimOperadores Where Activo = 'Si'"
     ConsultaETA = """
         SELECT NombreOperador, FechaFinalizacion, CumpleETA 
         FROM DimIndicadoresOperaciones 
@@ -62,32 +65,37 @@ def cargar_datos():
         AND FechaLlegada IS NOT NULL
         """
     ConsultaPermiso = "SELECT NoOperador, Nombre, Activo, FechaBloqueo  FROM DimBloqueosTrafico"
+    ConsultaDBDIA= "SELECT * FROM DIA_NYC"
+    
     
     planas = fetch_data(consulta_planas)
     Operadores = fetch_data(consulta_operadores)  
     Cartas = fetch_data(ConsultaCartas)
     Gasto = fetch_data_PRO(ConsultaGasto)
     Km = fetch_data(ConsultaKm)
-    Bloqueo = fetch_data(ConsultaBloqueo)
+    Bloqueo = fetch_data(consultaOp)
     ETAs = fetch_data(ConsultaETA)
     Permisos = fetch_data(ConsultaPermiso)
-    Op= fetch_data(consultaOp)
+    Op= Bloqueo.copy()
     Tractor= fetch_data(consultaTrac)
+    DataDIA= fetch_data_DIA(ConsultaDBDIA)
     
-    return planas, Operadores, Cartas, Gasto, Km, Bloqueo, ETAs, Permisos, Op, Tractor
+    return planas, Operadores, Cartas, Gasto, Km, Bloqueo, ETAs, Permisos, Op, Tractor, DataDIA
 
-def planas_en_patio(planas):
+def planas_en_patio(planas, DataDIA):
     planas['Horas en patio'] = ((datetime.now() - planas['FechaEstatus']).dt.total_seconds() / 3600.0).round(1)
+    planas= planas[~planas['Remolque'].isin(DataDIA['Plana'])]
     planas['ValorViaje'] = planas['ValorViaje'].apply(lambda x: "${:,.0f}".format(x))
     planas.sort_values(by=['FechaEstatus'], ascending=True, inplace=True)
     planas.reset_index(drop=True, inplace=True)
     planas.index += 1
     return planas
 
-def procesar_operadores(Operadores):
+def procesar_operadores(Operadores, DataDIA):
     Operadores = Operadores[(Operadores['Estatus'] == 'Disponible') & (Operadores['Destino'] == 'NYC')]
     Operadores  = Operadores [Operadores ['UOperativa'].isin(['U.O. 01 ACERO', 'U.O. 02 ACERO', 'U.O. 03 ACERO', 'U.O. 04 ACERO', 'U.O. 07 ACERO','U.O. 39 ACERO', 'U.O. 15 ACERO (ENCORTINADOS)', 'U.O. 41 ACERO LOCAL (BIG COIL)', 'U.O. 52 ACERO (ENCORTINADOS SCANIA)'])]
     Operadores['Tiempo Disponible'] = ((datetime.now() - Operadores['FechaEstatus']).dt.total_seconds() / 3600).round(1)
+    Operadores= Operadores[~Operadores['Operador'].isin(DataDIA['Operador'])]
     Operadores = Operadores[Operadores['ObservOperaciones'].isna() | Operadores['ObservOperaciones'].eq('')]
     Operadores = Operadores[['Operador', 'Tractor', 'UOperativa', 'Tiempo Disponible']]
     Operadores.sort_values(by='Tiempo Disponible', ascending=False, inplace=True)
@@ -803,3 +811,55 @@ def cercaU():
     cerca = cerca.loc[cerca['localizacion'] == '0.00 Km. NYC MONTERREY']
     cerca= cerca[['cve_uni']]
     return cerca
+
+def insertar_datos():
+    global f_concatenado
+    f_concatenado=f_concatenado
+    if not isinstance(f_concatenado, pd.DataFrame):
+        print("f_concatenado no está definido correctamente como un DataFrame.")
+        return  # Salir de la función si f_concatenado no es un DataFrame
+    
+    conn = create_engine_db_DIA()
+    if conn is not None:
+        try:
+            cursor = conn.cursor()
+            # Añadir la columna de fecha en el query de inserción
+            query = "INSERT INTO DIA_NYC (Operador, Plana, FechaCreacion) VALUES (?, ?, ?)"
+            for index, row in f_concatenado.iterrows():
+                if row['Plana 2'] == 0 or pd.isnull(row['Plana 2']):
+                    plana = row['Plana 1']  # Solo usa Plana 1 si Plana 2 es 0 o NaN
+                else:
+                    plana = f"{row['Plana 1']} {row['Plana 2']}"  # Usa ambas planas
+
+                # Obtener la fecha y hora actual
+                fecha_actual = datetime.now()
+
+                # Ejecutar la consulta con la fecha incluida
+                cursor.execute(query, (row['Operador'], plana, fecha_actual))
+            conn.commit()
+            print("Datos insertados correctamente.")
+        except Exception as e:
+            print(f"Error al insertar los datos: {e}")
+        finally:
+            cursor.close()
+        conn.close()
+    else:
+        print("No se pudo establecer la conexión con la base de datos.")
+        
+def borrar_datos_antiguos():
+    conn = create_engine_db_DIA()  # Asume que esta función retorna una conexión activa
+    if conn is not None:
+        try:
+            cursor = conn.cursor()
+            # Asume que tienes una columna 'FechaCreacion' en la tabla 'DIA_NYC'
+            query = "DELETE FROM DIA_NYC WHERE FechaCreacion <= DATEADD(hour, -6.9, GETDATE())" #zona horaria en azure incorrecta
+            cursor.execute(query)
+            conn.commit()  # Confirma la transacción
+            print("Registros antiguos eliminados correctamente.")
+        except Exception as e:
+            print(f"Error al borrar datos: {e}")
+        finally:
+            cursor.close()
+        conn.close()
+    else:
+        print("No se pudo establecer la conexión con la base de datos.")
