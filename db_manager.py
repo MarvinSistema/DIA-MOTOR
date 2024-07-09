@@ -75,4 +75,4 @@ def fetch_data_DIA(query):
         finally:
             connection.close()  # Asegurarse de cerrar la conexión
         return result
-    return pd.DataFrame()  #
+    return pd.DataFrame()  

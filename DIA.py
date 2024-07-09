@@ -32,7 +32,7 @@ def index():
     f_concatenado = asignacion2(planasPorAsignar, calOperadores, planas, Op, Tractor)
     a = api_dia()
     b=insertar_datos()
-    d=borrar_datos_antiguos()
+    #d=borrar_datos_antiguos()
     datos_html = f_concatenado.to_html()
     
     return render_template('asignacionDIA.html', datos_html=datos_html)
@@ -468,26 +468,17 @@ def asignacionesPasadasOp(Cartas):
     # Crear una tabla pivote para contar la cantidad de 'Bueno', 'Malo' y 'Regular' para cada operador
     CP = pd.pivot_table(CP, index='Operador', columns='TipoViaje', aggfunc='size', fill_value=0)
 
-    # Define los pesos
-    P1 = 2
-    P2 = 1
-
     # Calcula el puntaje bruto para cada fila
-    CP['PuntajeBruto'] = (CP['Malo'] * P1) - (CP['Bueno'] * P2)
+    CP['PuntajeBruto'] = (CP['Malo'] * 0.5)+ (CP['Regular'] * 1) + (CP['Bueno'] * 2)
 
     # Calcula el máximo y mínimo puntaje bruto que podría existir basado en los datos del DataFrame
-    max_puntaje_posible = (CP['Malo'] + CP['Bueno']) * P1
-    min_puntaje_posible = (CP['Malo'] + CP['Bueno']) * P2 * -1
+    min_puntaje_posible = CP['PuntajeBruto'].min()
+    max_value = CP['PuntajeBruto'].max()
 
-    # Determina el rango de puntaje total
-    rango_puntaje = max_puntaje_posible.max() - min_puntaje_posible.min()
-
-    # Ajusta los puntajes para que el mínimo sea 0 y normaliza a una escala de 50
-    CP['CalificacionVianjesAnteiores'] = 15+40 * (CP['PuntajeBruto'] - min_puntaje_posible.min()) / rango_puntaje
-
+    #Normalizo entre 1-50 el puntaje buruto
+    CP['CalificacionVianjesAnteiores'] =  1 + (49 * (CP['PuntajeBruto'] - min_puntaje_posible) / (max_value - min_puntaje_posible))
+    CP['CalificacionVianjesAnteiores'].replace([float('inf'), -float('inf')], 0, inplace=True)
     CP['CalificacionVianjesAnteiores'] = CP['CalificacionVianjesAnteiores'].round().astype(int)
-
-
     CP = CP.reset_index()
     return CP
 
@@ -852,7 +843,7 @@ def borrar_datos_antiguos():
         try:
             cursor = conn.cursor()
             # Asume que tienes una columna 'FechaCreacion' en la tabla 'DIA_NYC'
-            query = "DELETE FROM DIA_NYC WHERE FechaCreacion <= DATEADD(hour, -6.9, GETDATE())" #zona horaria en azure incorrecta
+            query = "DELETE FROM DIA_NYC WHERE FechaCreacion <= DATEADD(hour, -7, GETDATE())" #zona horaria en azure incorrecta
             cursor.execute(query)
             conn.commit()  # Confirma la transacción
             print("Registros antiguos eliminados correctamente.")
