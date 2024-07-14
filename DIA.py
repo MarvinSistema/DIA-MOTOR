@@ -15,13 +15,13 @@ from db_manager import fetch_data, fetch_data_PRO, fetch_data_DIA, create_engine
 asignacionDIA = Blueprint('asignacionDIA', __name__)
 @asignacionDIA.route('/')
 def index():
-    global f_concatenado
-    f_concatenado = None
+    global asignacion 
+    asignacion  = None
     #d=borrar_datos_antiguos() #Elimino datos de mi base de datos por costos
-    planas, Operadores, Cartas, Gasto, Km, Bloqueo, ETAs, Permisos, Op, Tractor, DataDIA  = cargar_datos()
+    planas, Operadores, Cartas, Gasto, Km, Bloqueo, ETAs, Permisos, Op, Tractor, DataDIA, Dolly  = cargar_datos()
     planasPatio = planas_en_patio(planas, DataDIA)
     planasPorAsignar = procesar_planas(planasPatio)
-    operadores_sin_asignacion = procesar_operadores(Operadores, DataDIA)
+    operadores_sin_asignacion = procesar_operadores(Operadores, DataDIA, Dolly)
     asignacionesPasadasOperadores=  asignacionesPasadasOp(Cartas)
     siniestroKm= siniestralidad(Gasto, Km)
     ETAi= eta(ETAs)
@@ -29,11 +29,11 @@ def index():
     cerca = cercaU()
     b=insertar_datos()
     calOperadores= calOperador(operadores_sin_asignacion, Bloqueo, asignacionesPasadasOperadores, siniestroKm, ETAi, PermisosOp, cerca)
-    f_concatenado = asignacion2(planasPorAsignar, calOperadores, planas, Op, Tractor)
-    a = api_dia()
-    b=insertar_datos()
-    #d=borrar_datos_antiguos()
-    datos_html = f_concatenado.to_html()
+    asignacion = asignacion2(planasPorAsignar, calOperadores, planas, Op, Tractor)
+    conexionSPL= api_spl()
+    datosAzure=insertar_datos()
+    borrarDataAzure=borrar_datos_antiguos()
+    datos_html =  asignacion.to_html()
     
     return render_template('asignacionDIA.html', datos_html=datos_html)
 
@@ -66,7 +66,8 @@ def cargar_datos():
         """
     ConsultaPermiso = "SELECT NoOperador, Nombre, Activo, FechaBloqueo  FROM DimBloqueosTrafico"
     ConsultaDBDIA= "SELECT * FROM DIA_NYC"
-    
+    ConsultaDolly = "SELECT * FROM Cat_Dolly"
+    #Where Activo = 'True' AND UbicacionActual= 'NYC' AND EstatusActual= 'Disponible' AND Unidad <> 'U.O. 100 - EQUIPO NUEVO' AND Unidad <> 'U.O. 14 ACERO (PATIOS MX)'"
     
     planas = fetch_data(consulta_planas)
     Operadores = fetch_data(consulta_operadores)  
@@ -78,9 +79,10 @@ def cargar_datos():
     Permisos = fetch_data(ConsultaPermiso)
     Op= Bloqueo.copy()
     Tractor= fetch_data(consultaTrac)
+    Dolly= fetch_data(ConsultaDolly)
     DataDIA= fetch_data_DIA(ConsultaDBDIA)
     
-    return planas, Operadores, Cartas, Gasto, Km, Bloqueo, ETAs, Permisos, Op, Tractor, DataDIA
+    return planas, Operadores, Cartas, Gasto, Km, Bloqueo, ETAs, Permisos, Op, Tractor, DataDIA, Dolly
 
 def planas_en_patio(planas, DataDIA):
     planas['Horas en patio'] = ((datetime.now() - planas['FechaEstatus']).dt.total_seconds() / 3600.0).round(1)
@@ -91,33 +93,46 @@ def planas_en_patio(planas, DataDIA):
     planas.index += 1
     return planas
 
-def procesar_operadores(Operadores, DataDIA):
+def procesar_operadores(Operadores, DataDIA, Dolly):
+    u_operativas = ['U.O. 01 ACERO', 'U.O. 02 ACERO', 'U.O. 03 ACERO', 'U.O. 04 ACERO', 'U.O. 07 ACERO', 'U.O. 39 ACERO']
+    DollyDisponibles = Dolly.copy()
+    DollyDisponibles = DollyDisponibles[
+        (DollyDisponibles['Activo'] == True) &
+        (DollyDisponibles['UbicacionActual'] == 'NYC') &
+        (DollyDisponibles['EstatusActual'] == 'Disponible') &
+        (DollyDisponibles['Unidad'] != 'U.O. 100 - EQUIPO NUEVO') &
+        (DollyDisponibles['Unidad'] != 'U.O. 14 ACERO (PATIOS MX)')
+    ]
+    DollyDisponibles = DollyDisponibles[['IdDolly', 'ClaveDolly']]
+    
+    Operadores= pd.merge(Operadores, Dolly, left_on='DollyAsignado', right_on='ClaveDolly', how='left')
     Operadores = Operadores[(Operadores['Estatus'] == 'Disponible') & (Operadores['Destino'] == 'NYC')]
     Operadores  = Operadores [Operadores ['UOperativa'].isin(['U.O. 01 ACERO', 'U.O. 02 ACERO', 'U.O. 03 ACERO', 'U.O. 04 ACERO', 'U.O. 07 ACERO','U.O. 39 ACERO', 'U.O. 15 ACERO (ENCORTINADOS)', 'U.O. 41 ACERO LOCAL (BIG COIL)', 'U.O. 52 ACERO (ENCORTINADOS SCANIA)'])]
     Operadores['Tiempo Disponible'] = ((datetime.now() - Operadores['FechaEstatus']).dt.total_seconds() / 3600).round(1)
-    Operadores= Operadores[~Operadores['Operador'].isin(DataDIA['Operador'])]
+    Operadores= Operadores[~Operadores['Operador'].isin(DataDIA['Operador'])]#Elimina Ops ya asignados
     Operadores = Operadores[Operadores['ObservOperaciones'].isna() | Operadores['ObservOperaciones'].eq('')]
-    Operadores = Operadores[['Operador', 'Tractor', 'UOperativa', 'Tiempo Disponible']]
+    
+    #Verificamos que los dollys no esten asignados ya a tractores (operadores)
+    DollyDisponibles= DollyDisponibles[~DollyDisponibles['IdDolly'].isin(Operadores['IdDolly'])]
+    # Encuentra índices donde IdDolly es NaN y la unidad operativa está en la lista deseada
+    mask = (pd.isna(Operadores['IdDolly'])) & (Operadores['UOperativa'].isin(u_operativas))
+    # Genera una lista de posibles IdDolly para asignar desde DollyDisponibles
+    dolly_ids = DollyDisponibles['IdDolly'].unique()
+    # Asignar aleatoriamente un IdDolly desde DollyDisponibles a los índices filtrados en Operadores
+    Operadores.loc[mask, 'IdDolly'] = np.random.choice(dolly_ids, size=mask.sum())
+        
+    
+    Operadores = Operadores[['Operador', 'Tractor', 'UOperativa', 'Tiempo Disponible', 'DollyAsignado', 'ClaveDolly', 'IdDolly']]
     Operadores.sort_values(by='Tiempo Disponible', ascending=False, inplace=True)
     Operadores.reset_index(drop=True, inplace=True)
-    Operadores.index += 1 
+    Operadores.index += 1
     return Operadores
 
 def procesar_planas(planas):
-    """
-    Procesa las planas para encontrar combinaciones de viajes optimizados.
-
-    Parámetros:
-    planas (pd.DataFrame): DataFrame con información de las planas.
-
-    Retorna:
-    pd.DataFrame: DataFrame con las combinaciones de viajes optimizadas.
-    """  
     # Constantes
     distanciaMaxima = 220
-    hourasMaxDifDestino = 21
-    hourasMaxNones = 22
-
+    hourasMaxDifDestino = 22
+    
     def mismoDestino(planas):
         # Se Ordenan
         planas.sort_values(by=['FechaEstatus','CiudadDestino'], ascending=True, inplace=True)
@@ -298,33 +313,11 @@ def procesar_planas(planas):
             diferentesDestino_df = df_empates_dobles.copy()
 
         return diferentesDestino_df, combined_df
-            
-    def nones(combined_df):
-        #Planas sin pares al mismo destino a destinos cercanos
-        nones_df= combined_df[pd.isna(combined_df['IDe'])]
-        ahora = datetime.now()
-        limite = ahora - timedelta(hours=hourasMaxNones)
-
-        #Filtrar el DataFrame para quedarte solo con las filas cuya 'Fecha Estatus_a' sea mayor a 24 horas atrás
-        nones_df= nones_df[nones_df['FechaEstatus'] < limite]
-
-        #Renombrar columnas
-        nones_df.rename(columns={
-        'Remolque': 'remolque_a',
-        'FechaEstatus': 'Fecha Estatus_a',
-        'ValorViaje':'ValorViaje_a'
-        }, inplace=True)
-
-        return nones_df
-
+     
     def matchFinal(planas):
         # Se obtienen los dataframes de cada función
         df_mismoDestino, planas = mismoDestino(planas)
         diferentesDestino_df, combined_df = diferentesDestino(planas)
-        nones_df = nones(combined_df)
-
-        # Concatena todos los dataframes 
-        #df_concatenado = pd.concat([df_mismoDestino, diferentesDestino_df], ignore_index=True)
 
         # Filtrar DataFrames vacíos o con solo valores NA
         dataframes = [df_mismoDestino, diferentesDestino_df]
@@ -335,8 +328,7 @@ def procesar_planas(planas):
         else:
             df_concatenado = pd.DataFrame()  # Crear un DataFrame vacío si no hay DataFrames válidos
 
-        df_concatenado = pd.concat([df_concatenado , nones_df], ignore_index=True)
-
+        
         # Calcular valor total del viaje
         df_concatenado['ValorViaje_a'] = df_concatenado['ValorViaje_a'].replace('[\$,]', '', regex=True).astype(float)
         df_concatenado['ValorViaje_b'] = df_concatenado['ValorViaje_b'].replace('[\$,]', '', regex=True).astype(float)
@@ -346,25 +338,25 @@ def procesar_planas(planas):
         ahora = datetime.now()
 
         # Reemplazar valores NaT por la fecha y hora actual en la columna 'Fecha Estatus_b'
-        df_concatenado['Fecha Estatus_b'] = df_concatenado['Fecha Estatus_b'].fillna(ahora)
+        #df_concatenado['Fecha Estatus_b'] = df_concatenado['Fecha Estatus_b'].fillna(ahora)
 
         #Obtener la fecha mas antigua entre las dos planas
         df_concatenado['Fecha Más Antigua'] = np.where(df_concatenado['Fecha Estatus_a'] < df_concatenado['Fecha Estatus_b'],
                                                         df_concatenado['Fecha Estatus_a'],
                                                         df_concatenado['Fecha Estatus_b'])
-
         df_concatenado = df_concatenado.sort_values(by='Fecha Más Antigua', ascending=True)
 
         # Crear un diccionario con las columnas seleccionadas y el valor 0 para rellenar
+        '''
         columns_to_fill = {
             'remolque_a': 0,
             'remolque_b': 0,
             'ValorViaje_a': 0,
             'ValorViaje_b': 0
         }
-
+        '''
         # Llenar NaN con ceros solo en las columnas seleccionadas
-        df_concatenado.fillna(value=columns_to_fill, inplace=True)
+        #df_concatenado.fillna(value=columns_to_fill, inplace=True)
 
 
         # Calcular valor total del viaje
@@ -385,8 +377,6 @@ def procesar_planas(planas):
         
         return df_concatenado
 
-    
-    
     return matchFinal(planas)
 
 def calOperador(operadores_sin_asignacion, Bloqueo, asignacionesPasadasOp, siniestroKm, ETAi, PermisosOp, cerca):
@@ -418,7 +408,7 @@ def calOperador(operadores_sin_asignacion, Bloqueo, asignacionesPasadasOp, sinie
     )
     calOperador = calOperador[['FechaIngreso', 'Operador', 'Activo_y','Tractor', 'UOperativa_x', 'Tiempo Disponible', 'OperadorBloqueado', 
         'Bueno','Regular', 'Malo', 'CalificacionVianjesAnteiores', 'Siniestralidad', 'PuntosSiniestros', 'Cumple ETA', 'No Cumple ETA',
-        'Calificacion SAC', 'ViajeCancelado', 'CalFinal']]
+        'Calificacion SAC', 'ViajeCancelado', 'CalFinal', 'IdDolly']]
     calOperador = calOperador.rename(columns={
     'UOperativa_x': 'Operativa',
     'OperadorBloqueado': 'Bloqueado Por Seguridad',
@@ -571,12 +561,16 @@ def eta(ETAi):
     return ETAi
 
 def asignacion2(planasPorAsignar, calOperador, planas, Op, Tractor):
+    #Tractor['DollyAsignado'] = Tractor['DollyAsignado'].replace('Sin datos', np.nan)
+    
     if (planasPorAsignar['remolque_b'] == 0).any():
         calOperador= calOperador[calOperador['Bloqueado Por Seguridad'].isin(['No'])]
         calOperador= calOperador[calOperador['Permiso'].isin(['No'])]
             
-        izi = calOperador.copy()
         operardorNon = calOperador[calOperador ['Operativa'].isin([ 'U.O. 15 ACERO (ENCORTINADOS)', 'U.O. 41 ACERO LOCAL (BIG COIL)', 'U.O. 52 ACERO (ENCORTINADOS SCANIA)'])]
+        operardorNon = pd.merge( operardorNon,  Tractor, left_on='Tractor', right_on='ClaveTractor', how='left')
+        #operardorNon['DollyAsignado'] = operardorNon['DollyAsignado'].replace('Sin datos', np.nan)
+       
         #Crear una columna auxiliar para priorizar 'U.O. 41 ACERO LOCAL (BIG COIL)'
         operardorNon['priority'] = (operardorNon['Operativa'] == 'U.O. 41 ACERO LOCAL (BIG COIL)').astype(int)
         
@@ -635,11 +629,12 @@ def asignacion2(planasPorAsignar, calOperador, planas, Op, Tractor):
         f_concatenado= pd.merge(f_concatenado, Tractor, left_on='Tractor', right_on='ClaveTractor', how='left')
         
         #f_concatenado['IdOperador'] = f_concatenado['IdOperador'].astype(int)
-        f_concatenado = f_concatenado[['Ruta', 'remolque_a', 'remolque_b', 'Operador', 'IdOperador', 'IdTractor', 'Tractor', 'IdRemolque1', 'IdSolicitud1', 'IdRemolque2', 'IdSolicitud2' ]]
+        f_concatenado = f_concatenado[['Ruta', 'remolque_a', 'remolque_b', 'Operador', 'IdOperador', 'IdTractor_x', 'Tractor', 'IdRemolque1', 'IdSolicitud1', 'IdRemolque2', 'IdSolicitud2', 'IdDolly']]
 
         f_concatenado.rename(columns={
         'remolque_a': 'Plana 1',
         'remolque_b': 'Plana 2',
+        'IdTractor_x': 'IdTractor',
         }, inplace=True)
         
         f_concatenado = f_concatenado[f_concatenado['Operador'].notna()]
@@ -690,12 +685,12 @@ def asignacion2(planasPorAsignar, calOperador, planas, Op, Tractor):
         f_concatenado= pd.merge(f_concatenado, Tractor, left_on='Tractor', right_on='ClaveTractor', how='left')
         
         #f_concatenado['IdOperador'] = f_concatenado['IdOperador'].astype(int)
-        f_concatenado = f_concatenado[['Ruta', 'remolque_a', 'remolque_b', 'Operador', 'IdOperador', 'IdTractor', 'Tractor', 'IdRemolque1', 'IdSolicitud1', 'IdRemolque2', 'IdSolicitud2' ]]
-
+        f_concatenado = f_concatenado[['Ruta', 'remolque_a', 'remolque_b', 'Operador', 'IdOperador', 'IdTractor', 'Tractor', 'IdRemolque1', 'IdSolicitud1', 'IdRemolque2', 'IdSolicitud2', 'IdDolly']]
+        
        
         f_concatenado.rename(columns={
         'remolque_a': 'Plana 1',
-        'remolque_b': 'Plana 2'
+        'remolque_b': 'Plana 2',
         }, inplace=True)
 
 
@@ -703,9 +698,9 @@ def asignacion2(planasPorAsignar, calOperador, planas, Op, Tractor):
         
         return f_concatenado
 
-def api_dia():
-    global f_concatenado
-    a = f_concatenado[['IdSolicitud1', 'IdSolicitud2', 'IdRemolque1', 'IdRemolque2', 'IdTractor', 'IdOperador']]
+def api_spl():
+    global asignacion 
+    a = asignacion[['IdSolicitud1', 'IdSolicitud2', 'IdRemolque1', 'IdRemolque2', 'IdTractor', 'IdOperador', 'IdDolly']]
 
     def token_api():
         url = 'https://splpro.mx/ApiSpl/api/Login/authenticate'
@@ -804,9 +799,9 @@ def cercaU():
     return cerca
 
 def insertar_datos():
-    global f_concatenado
-    f_concatenado=f_concatenado
-    if not isinstance(f_concatenado, pd.DataFrame):
+    global asignacion 
+    asignacion = asignacion 
+    if not isinstance(asignacion , pd.DataFrame):
         print("f_concatenado no está definido correctamente como un DataFrame.")
         return  # Salir de la función si f_concatenado no es un DataFrame
     
@@ -816,7 +811,7 @@ def insertar_datos():
             cursor = conn.cursor()
             # Añadir la columna de fecha en el query de inserción
             query = "INSERT INTO DIA_NYC (Operador, Plana, FechaCreacion) VALUES (?, ?, ?)"
-            for index, row in f_concatenado.iterrows():
+            for index, row in asignacion.iterrows():
                 if row['Plana 2'] == 0 or pd.isnull(row['Plana 2']):
                     plana = row['Plana 1']  # Solo usa Plana 1 si Plana 2 es 0 o NaN
                 else:
@@ -854,3 +849,4 @@ def borrar_datos_antiguos():
         conn.close()
     else:
         print("No se pudo establecer la conexión con la base de datos.")
+        
