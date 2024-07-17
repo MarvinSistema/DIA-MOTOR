@@ -1,7 +1,6 @@
 import os
 from datetime import datetime, timedelta
 
-
 import networkx as nx
 import numpy as np
 import pandas as pd
@@ -17,7 +16,6 @@ asignacionDIA = Blueprint('asignacionDIA', __name__)
 def index():
     global asignacion 
     asignacion  = None
-    #d=borrar_datos_antiguos() #Elimino datos de mi base de datos por costos
     planas, Operadores, Cartas, Gasto, Km, Bloqueo, ETAs, Permisos, Op, Tractor, DataDIA, Dolly  = cargar_datos()
     planasPatio = planas_en_patio(planas, DataDIA)
     planasPorAsignar = procesar_planas(planasPatio)
@@ -67,7 +65,7 @@ def cargar_datos():
     ConsultaPermiso = "SELECT NoOperador, Nombre, Activo, FechaBloqueo  FROM DimBloqueosTrafico"
     ConsultaDBDIA= "SELECT * FROM DIA_NYC"
     ConsultaDolly = "SELECT * FROM Cat_Dolly"
-    #Where Activo = 'True' AND UbicacionActual= 'NYC' AND EstatusActual= 'Disponible' AND Unidad <> 'U.O. 100 - EQUIPO NUEVO' AND Unidad <> 'U.O. 14 ACERO (PATIOS MX)'"
+    
     
     planas = fetch_data(consulta_planas)
     Operadores = fetch_data(consulta_operadores)  
@@ -80,21 +78,20 @@ def cargar_datos():
     Op= Bloqueo.copy()
     Tractor= fetch_data(consultaTrac)
     Dolly= fetch_data(ConsultaDolly)
-    DataDIA= fetch_data_DIA(ConsultaDBDIA)
+    DataAzureDIA= fetch_data_DIA(ConsultaDBDIA)
     
-    return planas, Operadores, Cartas, Gasto, Km, Bloqueo, ETAs, Permisos, Op, Tractor, DataDIA, Dolly
+    return planas, Operadores, Cartas, Gasto, Km, Bloqueo, ETAs, Permisos, Op, Tractor, DataAzureDIA, Dolly
 
 def planas_en_patio(planas, DataDIA):
     planas['Horas en patio'] = ((datetime.now() - planas['FechaEstatus']).dt.total_seconds() / 3600.0).round(1)
     planas= planas[~planas['Remolque'].isin(DataDIA['Plana'])]
-    planas['ValorViaje'] = planas['ValorViaje'].apply(lambda x: "${:,.0f}".format(x))
     planas.sort_values(by=['FechaEstatus'], ascending=True, inplace=True)
     planas.reset_index(drop=True, inplace=True)
     planas.index += 1
     return planas
 
 def procesar_operadores(Operadores, DataDIA, Dolly):
-    u_operativas = ['U.O. 01 ACERO', 'U.O. 02 ACERO', 'U.O. 03 ACERO', 'U.O. 04 ACERO', 'U.O. 07 ACERO', 'U.O. 39 ACERO']
+    u_operativas = ['U.O. 01 ACERO', 'U.O. 02 ACERO', 'U.O. 03 ACERO', 'U.O. 04 ACERO', 'U.O. 06 ACERO (TENIGAL)',  'U.O. 07 ACERO', 'U.O. 39 ACERO']
     DollyDisponibles = Dolly.copy()
     DollyDisponibles = DollyDisponibles[
         (DollyDisponibles['Activo'] == True) &
@@ -103,16 +100,22 @@ def procesar_operadores(Operadores, DataDIA, Dolly):
         (DollyDisponibles['Unidad'] != 'U.O. 100 - EQUIPO NUEVO') &
         (DollyDisponibles['Unidad'] != 'U.O. 14 ACERO (PATIOS MX)')
     ]
-    DollyDisponibles = DollyDisponibles[['IdDolly', 'ClaveDolly']]
+
     
+    
+    DollyDisponibles = DollyDisponibles[['IdDolly', 'ClaveDolly']]
+        
     Operadores= pd.merge(Operadores, Dolly, left_on='DollyAsignado', right_on='ClaveDolly', how='left')
     Operadores = Operadores[(Operadores['Estatus'] == 'Disponible') & (Operadores['Destino'] == 'NYC')]
-    Operadores  = Operadores [Operadores ['UOperativa'].isin(['U.O. 01 ACERO', 'U.O. 02 ACERO', 'U.O. 03 ACERO', 'U.O. 04 ACERO', 'U.O. 07 ACERO','U.O. 39 ACERO', 'U.O. 15 ACERO (ENCORTINADOS)', 'U.O. 41 ACERO LOCAL (BIG COIL)', 'U.O. 52 ACERO (ENCORTINADOS SCANIA)'])]
+    Operadores  = Operadores [Operadores ['UOperativa'].isin(['U.O. 01 ACERO', 'U.O. 02 ACERO', 'U.O. 03 ACERO', 'U.O. 04 ACERO', 'U.O. 06 ACERO (TENIGAL)', 'U.O. 07 ACERO','U.O. 39 ACERO'])]
     Operadores['Tiempo Disponible'] = ((datetime.now() - Operadores['FechaEstatus']).dt.total_seconds() / 3600).round(1)
+    Operadores = Operadores[Operadores['Tiempo Disponible'] > 0.15]
     Operadores= Operadores[~Operadores['Operador'].isin(DataDIA['Operador'])]#Elimina Ops ya asignados
-    Operadores = Operadores[Operadores['ObservOperaciones'].isna() | Operadores['ObservOperaciones'].eq('')]
+    #Operadores = Operadores[Operadores['ObservOperaciones'].isna() | Operadores['ObservOperaciones'].eq('')]
     
     #Verificamos que los dollys no esten asignados ya a tractores (operadores)
+    DollyDisponibles['IdDolly'] = DollyDisponibles['IdDolly'].astype(int)
+    Operadores['IdDolly'] = Operadores['IdDolly'].dropna().astype(int)
     DollyDisponibles= DollyDisponibles[~DollyDisponibles['IdDolly'].isin(Operadores['IdDolly'])]
     # Encuentra índices donde IdDolly es NaN y la unidad operativa está en la lista deseada
     mask = (pd.isna(Operadores['IdDolly'])) & (Operadores['UOperativa'].isin(u_operativas))
@@ -120,7 +123,7 @@ def procesar_operadores(Operadores, DataDIA, Dolly):
     dolly_ids = DollyDisponibles['IdDolly'].unique()
     # Asignar aleatoriamente un IdDolly desde DollyDisponibles a los índices filtrados en Operadores
     Operadores.loc[mask, 'IdDolly'] = np.random.choice(dolly_ids, size=mask.sum())
-        
+    
     
     Operadores = Operadores[['Operador', 'Tractor', 'UOperativa', 'Tiempo Disponible', 'DollyAsignado', 'ClaveDolly', 'IdDolly']]
     Operadores.sort_values(by='Tiempo Disponible', ascending=False, inplace=True)
@@ -360,8 +363,8 @@ def procesar_planas(planas):
 
 
         # Calcular valor total del viaje
-        #df_concatenado['Monto'] = df_concatenado['ValorViaje_a'] + df_concatenado['ValorViaje_b']
-        #df_concatenado['Monto'] = df_concatenado['Monto'].map('{:,.0f}'.format)
+        df_concatenado['Monto'] = df_concatenado['ValorViaje_a'] + df_concatenado['ValorViaje_b']
+
         
         
         #Calcular horas en patio
@@ -369,6 +372,40 @@ def procesar_planas(planas):
         df_concatenado = df_concatenado[['Ruta', 'remolque_a', 'remolque_b', 'Monto', 'Horas en Patio']]
         #df_concatenado = df_concatenado[['Ruta', 'remolque_a', 'remolque_b', 'ValorViaje_a', 'ValorViaje_b', 'Horas en Patio']]
         df_concatenado= df_concatenado[df_concatenado['Ruta'] != 'MONTERREY-ALLENDE']
+
+
+
+        planasPorAsignar = df_concatenado.copy()
+        
+        def prioridad(planasPorAsignar):
+            peso_urgencia = 0.65
+            peso_paga = 0.35
+
+            # Asegurarse de que las columnas son numéricas
+            planasPorAsignar['Horas en Patio'] = pd.to_numeric(planasPorAsignar['Horas en Patio'], errors='coerce').fillna(0)
+            planasPorAsignar['Monto'] = pd.to_numeric(planasPorAsignar['Monto'], errors='coerce').fillna(0)
+
+            # Normalización de los datos
+            max_horas = 24
+            max_monto = planasPorAsignar['Monto'].max()
+
+            # Evitar la división por cero
+            max_horas = max(max_horas, 1)  # Asegurar que max_horas no sea cero
+            max_monto = max(max_monto, 1)  # Asegurar que max_monto no sea cero
+
+            planasPorAsignar['norm_urgencia'] = planasPorAsignar['Horas en Patio'] / max_horas
+            planasPorAsignar['norm_monto'] = planasPorAsignar['Monto'] / max_monto
+            
+
+            # Calcula el puntaje de prioridad usando las ponderaciones
+            planasPorAsignar['Puntaje de Prioridad'] = (peso_urgencia * planasPorAsignar['norm_urgencia']) + (peso_paga * planasPorAsignar['norm_monto'])
+            
+            return planasPorAsignar
+
+        
+        df_concatenado = prioridad(planasPorAsignar)
+
+        df_concatenado = df_concatenado.sort_values(by='Puntaje de Prioridad', ascending=False)
 
         df_concatenado.reset_index(drop=True, inplace=True)
         df_concatenado.index = df_concatenado.index + 1
@@ -382,7 +419,7 @@ def procesar_planas(planas):
 def calOperador(operadores_sin_asignacion, Bloqueo, asignacionesPasadasOp, siniestroKm, ETAi, PermisosOp, cerca):
     calOperador= operadores_sin_asignacion.copy()
     calOperador= pd.merge(operadores_sin_asignacion, Bloqueo, left_on='Operador', right_on='NombreOperador', how='left')
-    calOperador=calOperador[calOperador['Tractor'].isin(cerca['cve_uni'])]
+    calOperador= calOperador[calOperador['Tractor'].isin(cerca['cve_uni'])]
     calOperador= pd.merge(calOperador, asignacionesPasadasOp, left_on='Operador', right_on='Operador', how='left')
     calOperador= pd.merge(calOperador, siniestroKm, left_on='Tractor', right_on='Tractor', how='left')
     calOperador= pd.merge(calOperador, ETAi, left_on='Operador', right_on='NombreOperador', how='left')
@@ -436,7 +473,7 @@ def asignacionesPasadasOp(Cartas):
     CP[['ID1', 'Ciudad_Origen', 'Ciudad_Destino']] = CP['Ruta'].str.split(r' \|\| | - ', expand=True)
     # Filtro Mes actual, UO, ColumnasConservadas, Ciudad Origen
     CP = CP[CP['FechaSalida'] >= fecha_30_dias_atras]
-    CP = CP[CP['UnidadOperativa'].isin(['U.O. 01 ACERO', 'U.O. 02 ACERO', 'U.O. 03 ACERO', 'U.O. 04 ACERO', 'U.O. 39 ACERO', 'U.O. 07 ACERO', 'U.O. 15 ACERO (ENCORTINADOS)', 'U.O. 52 ACERO (ENCORTINADOS SCANIA)',  'U.O. 41 ACERO LOCAL (BIG COIL)'])]
+    CP = CP[CP['UnidadOperativa'].isin(['U.O. 01 ACERO', 'U.O. 02 ACERO', 'U.O. 03 ACERO', 'U.O. 04 ACERO','U.O. 06 ACERO (TENIGAL)', 'U.O. 39 ACERO', 'U.O. 07 ACERO', 'U.O. 15 ACERO (ENCORTINADOS)', 'U.O. 52 ACERO (ENCORTINADOS SCANIA)',  'U.O. 41 ACERO LOCAL (BIG COIL)'])]
     CP= CP[['IdViaje', 'Cliente', 'Operador', 'Ruta', 'SubtotalMXN', 'FechaSalida', 'Ciudad_Origen']]
     CP = CP[CP['Ciudad_Origen'].isin(['MONTERREY'])]
 
@@ -466,8 +503,8 @@ def asignacionesPasadasOp(Cartas):
     max_value = CP['PuntajeBruto'].max()
 
     #Normalizo entre 1-50 el puntaje buruto
-    CP['CalificacionVianjesAnteiores'] =  1 + (49 * (CP['PuntajeBruto'] - min_puntaje_posible) / (max_value - min_puntaje_posible))
-    CP['CalificacionVianjesAnteiores'].replace([float('inf'), -float('inf')], 0, inplace=True)
+    CP['CalificacionVianjesAnteiores'] =  50-(1 + (49 * (CP['PuntajeBruto'] - min_puntaje_posible) / (max_value - min_puntaje_posible)))
+    CP['CalificacionVianjesAnteiores'] = CP['CalificacionVianjesAnteiores'].replace([float('inf'), -float('inf')], 0)
     CP['CalificacionVianjesAnteiores'] = CP['CalificacionVianjesAnteiores'].round().astype(int)
     CP = CP.reset_index()
     return CP
@@ -561,146 +598,53 @@ def eta(ETAi):
     return ETAi
 
 def asignacion2(planasPorAsignar, calOperador, planas, Op, Tractor):
-    #Tractor['DollyAsignado'] = Tractor['DollyAsignado'].replace('Sin datos', np.nan)
     
-    if (planasPorAsignar['remolque_b'] == 0).any():
-        calOperador= calOperador[calOperador['Bloqueado Por Seguridad'].isin(['No'])]
-        calOperador= calOperador[calOperador['Permiso'].isin(['No'])]
+    
+    calOperador= calOperador[calOperador['Bloqueado Por Seguridad'].isin(['No'])]
+    calOperador= calOperador[calOperador['Permiso'].isin(['No'])]
+    calOperador = calOperador[calOperador['Operativa'].isin(['U.O. 01 ACERO', 'U.O. 02 ACERO', 'U.O. 03 ACERO', 'U.O. 04 ACERO', 'U.O. 06 ACERO (TENIGAL)', 'U.O. 07 ACERO','U.O. 39 ACERO'])]
+    calOperador = calOperador.sort_values(by=['CalFinal', 'Tiempo Disponible'], ascending=[False, False])
+    calOperador = calOperador.reset_index(drop=True)
+    calOperador.index = calOperador.index + 1
+    cantidadOperadores = len(calOperador)
             
-        operardorNon = calOperador[calOperador ['Operativa'].isin([ 'U.O. 15 ACERO (ENCORTINADOS)', 'U.O. 41 ACERO LOCAL (BIG COIL)', 'U.O. 52 ACERO (ENCORTINADOS SCANIA)'])]
-        operardorNon = pd.merge( operardorNon,  Tractor, left_on='Tractor', right_on='ClaveTractor', how='left')
-        #operardorNon['DollyAsignado'] = operardorNon['DollyAsignado'].replace('Sin datos', np.nan)
-       
-        #Crear una columna auxiliar para priorizar 'U.O. 41 ACERO LOCAL (BIG COIL)'
-        operardorNon['priority'] = (operardorNon['Operativa'] == 'U.O. 41 ACERO LOCAL (BIG COIL)').astype(int)
-        
-        operardorNon = operardorNon.sort_values(by=['priority', 'CalFinal', 'Tiempo Disponible'],ascending=[False, False, False])
-        operardorNon = operardorNon.reset_index(drop=True)
-        operardorNon.index = operardorNon.index + 1
-        operardorNon.drop(columns=['priority'], inplace=True)
-        
-        
-        operadorFull = calOperador[calOperador['Operativa'].isin(['U.O. 01 ACERO', 'U.O. 02 ACERO', 'U.O. 03 ACERO', 'U.O. 04 ACERO', 'U.O. 07 ACERO','U.O. 39 ACERO'])]
-        operadorFull = operadorFull.sort_values(by=['CalFinal', 'Tiempo Disponible'], ascending=[False, False])
-        operadorFull = operadorFull.reset_index(drop=True)
-        operadorFull.index = operadorFull.index + 1
-                
-        def prioridad():
-            peso_urgencia = 0.65
-            peso_paga = 0.35
 
-            # Normalización de los datos
-            max_horas = 24
-            max_monto = planasPorAsignar['Monto'].max()
+    planasPorAsignar= planasPorAsignar.head(cantidadOperadores)
+    planasPorAsignar= planasPorAsignar.sort_values(by='Monto', ascending=False)
+    planasPorAsignar.reset_index(drop=True, inplace=True)
+    planasPorAsignar.index = planasPorAsignar.index + 1
+    
+    
+    #f_concatenado = pd.concat([planasPorAsignar, calOperador], axis=1)
+    f_concatenado= pd.merge(planasPorAsignar, calOperador, left_index=True, right_index=True, how='left')
+    # Unión para Plana 1
+    f_concatenado = pd.merge(f_concatenado, planas, left_on='remolque_a', right_on='Remolque', how='left', suffixes=('', '_right1'))
+    f_concatenado.rename(columns={'IdSolicitud': 'IdSolicitud1', 'IdRemolque': 'IdRemolque1'}, inplace=True)
 
-            planasPorAsignar['norm_urgencia'] = planasPorAsignar['Horas en Patio'] / max_horas
-            planasPorAsignar['norm_monto'] = planasPorAsignar['Monto'] / max_monto
-
-            # Calcula el puntaje de prioridad usando las ponderaciones
-            planasPorAsignar['Puntaje de Prioridad'] = (peso_urgencia * planasPorAsignar['norm_urgencia']) + (peso_paga * planasPorAsignar['norm_monto'])
-            
-            return planasPorAsignar  
-        planasPorAsignar = prioridad()
-        
-        planasNon = planasPorAsignar[planasPorAsignar['remolque_b'] == 0]
-        planasNon = planasNon.sort_values(by='Monto', ascending=False)
-        planasNon = planasNon.reset_index(drop=True)
-        planasNon.index = planasNon.index + 1
-          
-        planasFull= planasPorAsignar[planasPorAsignar['remolque_b'] != 0]
-        planasFull= planasFull.sort_values(by='Monto', ascending=False)
-        planasFull = planasFull.reset_index(drop=True)
-        planasFull.index = planasFull.index + 1
-   
-        asignacionNon= pd.merge(planasNon, operardorNon, left_index=True, right_index=True, how='left')
-        asignacionFull= pd.merge(planasFull, operadorFull, left_index=True, right_index=True, how='left')
-          
-        f_concatenado=  pd.concat([asignacionNon, asignacionFull], axis=0)
-        
-        
-        # Unión para Plana 1
-        f_concatenado = pd.merge(f_concatenado, planas, left_on='remolque_a', right_on='Remolque', how='left', suffixes=('', '_right1'))
-        f_concatenado.rename(columns={'IdSolicitud': 'IdSolicitud1', 'IdRemolque': 'IdRemolque1'}, inplace=True)
-
-        # Unión para Plana 2
-        f_concatenado= pd.merge(f_concatenado, planas, left_on='remolque_b', right_on='Remolque', how='left', suffixes=('', '_right2'))
-        f_concatenado.rename(columns={'IdSolicitud': 'IdSolicitud2', 'IdRemolque': 'IdRemolque2'}, inplace=True)
-        f_concatenado= pd.merge(f_concatenado, Op, left_on='Operador', right_on='NombreOperador', how='left')
-        f_concatenado= pd.merge(f_concatenado, Tractor, left_on='Tractor', right_on='ClaveTractor', how='left')
-        
-        #f_concatenado['IdOperador'] = f_concatenado['IdOperador'].astype(int)
-        f_concatenado = f_concatenado[['Ruta', 'remolque_a', 'remolque_b', 'Operador', 'IdOperador', 'IdTractor_x', 'Tractor', 'IdRemolque1', 'IdSolicitud1', 'IdRemolque2', 'IdSolicitud2', 'IdDolly']]
-
-        f_concatenado.rename(columns={
-        'remolque_a': 'Plana 1',
-        'remolque_b': 'Plana 2',
-        'IdTractor_x': 'IdTractor',
-        }, inplace=True)
-        
-        f_concatenado = f_concatenado[f_concatenado['Operador'].notna()]
-        
-        return f_concatenado
-    else:
-        calOperador= calOperador[calOperador['Bloqueado Por Seguridad'].isin(['No'])]
-        calOperador= calOperador[calOperador['Permiso'].isin(['No'])]
-        calOperador = calOperador[calOperador['Operativa'].isin(['U.O. 01 ACERO', 'U.O. 02 ACERO', 'U.O. 03 ACERO', 'U.O. 04 ACERO', 'U.O. 07 ACERO','U.O. 39 ACERO'])]
-        calOperador = calOperador.sort_values(by=['CalFinal', 'Tiempo Disponible'], ascending=[False, False])
-        calOperador = calOperador.reset_index(drop=True)
-        calOperador.index = calOperador.index + 1
-        
-        def prioridad():
-            peso_urgencia = 0.65
-            peso_paga = 0.35
-
-            # Normalización de los datos
-            max_horas = 24
-            max_monto = planasPorAsignar['Monto'].max()
-
-            planasPorAsignar['norm_urgencia'] = planasPorAsignar['Horas en Patio'] / max_horas
-            planasPorAsignar['norm_monto'] = planasPorAsignar['Monto'] / max_monto
-
-            # Calcula el puntaje de prioridad usando las ponderaciones
-            planasPorAsignar['Puntaje de Prioridad'] = (peso_urgencia * planasPorAsignar['norm_urgencia']) + (peso_paga * planasPorAsignar['norm_monto'])
-            
-            return planasPorAsignar  
-        planasPorAsignar = prioridad()         
-        
-                
-        planasPorAsignar = planasPorAsignar.sort_values(by='Monto', ascending=False)
-        planasPorAsignar = planasPorAsignar.reset_index(drop=True)
-        planasPorAsignar.index = planasPorAsignar.index + 1
-
-        #f_concatenado = pd.concat([planasPorAsignar, calOperador], axis=1)
-        f_concatenado= pd.merge(planasPorAsignar, calOperador, left_index=True, right_index=True, how='left')
-        
-        
-        # Unión para Plana 1
-        f_concatenado = pd.merge(f_concatenado, planas, left_on='remolque_a', right_on='Remolque', how='left', suffixes=('', '_right1'))
-        f_concatenado.rename(columns={'IdSolicitud': 'IdSolicitud1', 'IdRemolque': 'IdRemolque1'}, inplace=True)
-
-        # Unión para Plana 2
-        f_concatenado= pd.merge(f_concatenado, planas, left_on='remolque_b', right_on='Remolque', how='left', suffixes=('', '_right2'))
-        f_concatenado.rename(columns={'IdSolicitud': 'IdSolicitud2', 'IdRemolque': 'IdRemolque2'}, inplace=True)
-        f_concatenado= pd.merge(f_concatenado, Op, left_on='Operador', right_on='NombreOperador', how='left')
-        f_concatenado= pd.merge(f_concatenado, Tractor, left_on='Tractor', right_on='ClaveTractor', how='left')
-        
-        #f_concatenado['IdOperador'] = f_concatenado['IdOperador'].astype(int)
-        f_concatenado = f_concatenado[['Ruta', 'remolque_a', 'remolque_b', 'Operador', 'IdOperador', 'IdTractor', 'Tractor', 'IdRemolque1', 'IdSolicitud1', 'IdRemolque2', 'IdSolicitud2', 'IdDolly']]
-        
-       
-        f_concatenado.rename(columns={
-        'remolque_a': 'Plana 1',
-        'remolque_b': 'Plana 2',
-        }, inplace=True)
+    # Unión para Plana 2
+    f_concatenado= pd.merge(f_concatenado, planas, left_on='remolque_b', right_on='Remolque', how='left', suffixes=('', '_right2'))
+    f_concatenado.rename(columns={'IdSolicitud': 'IdSolicitud2', 'IdRemolque': 'IdRemolque2'}, inplace=True)
+    f_concatenado= pd.merge(f_concatenado, Op, left_on='Operador', right_on='NombreOperador', how='left')
+    f_concatenado= pd.merge(f_concatenado, Tractor, left_on='Tractor', right_on='ClaveTractor', how='left')
+    
+    #f_concatenado['IdOperador'] = f_concatenado['IdOperador'].astype(int)
+    f_concatenado = f_concatenado[['Ruta', 'remolque_a', 'remolque_b', 'Operador', 'Tiempo Disponible', 'IdOperador', 'IdTractor', 'Tractor', 'IdRemolque1', 'IdSolicitud1', 'IdRemolque2', 'IdSolicitud2', 'IdDolly']]
+    
+    
+    f_concatenado.rename(columns={
+    'remolque_a': 'Plana 1',
+    'remolque_b': 'Plana 2',
+    }, inplace=True)
 
 
-        f_concatenado = f_concatenado[f_concatenado['Operador'].notna()]
-        
-        return f_concatenado
+    f_concatenado = f_concatenado[f_concatenado['Operador'].notna()]
+    
+    return f_concatenado
 
 def api_spl():
     global asignacion 
-    a = asignacion[['IdSolicitud1', 'IdSolicitud2', 'IdRemolque1', 'IdRemolque2', 'IdTractor', 'IdOperador', 'IdDolly']]
+    a = asignacion[['IdSolicitud1', 'IdSolicitud2', 'IdRemolque1', 'IdRemolque2', 'IdTractor', 'IdOperador','IdDolly']]
+    
 
     def token_api():
         url = 'https://splpro.mx/ApiSpl/api/Login/authenticate'
@@ -742,7 +686,8 @@ def api_spl():
                 'IdRemolque1': int(row['IdRemolque1']),
                 'IdRemolque2': int(row['IdRemolque2']),
                 'IdTractor': int(row['IdTractor']),
-                'IdOperador': int(row['IdOperador'])
+                'IdOperador': int(row['IdOperador']),
+                'IdDolly':int(row['IdDolly'])
             }
 
             response = requests.post(url, json=payload, headers=headers, verify=False)
@@ -799,11 +744,10 @@ def cercaU():
     return cerca
 
 def insertar_datos():
-    global asignacion 
-    asignacion = asignacion 
-    if not isinstance(asignacion , pd.DataFrame):
-        print("f_concatenado no está definido correctamente como un DataFrame.")
-        return  # Salir de la función si f_concatenado no es un DataFrame
+    global asignacion
+    if not isinstance(asignacion, pd.DataFrame):
+        print("asignacion no está definido correctamente como un DataFrame.")
+        return  # Salir de la función si asignacion no es un DataFrame
     
     conn = create_engine_db_DIA()
     if conn is not None:
@@ -812,23 +756,20 @@ def insertar_datos():
             # Añadir la columna de fecha en el query de inserción
             query = "INSERT INTO DIA_NYC (Operador, Plana, FechaCreacion) VALUES (?, ?, ?)"
             for index, row in asignacion.iterrows():
-                if row['Plana 2'] == 0 or pd.isnull(row['Plana 2']):
-                    plana = row['Plana 1']  # Solo usa Plana 1 si Plana 2 es 0 o NaN
-                else:
-                    plana = f"{row['Plana 1']} {row['Plana 2']}"  # Usa ambas planas
-
-                # Obtener la fecha y hora actual
-                fecha_actual = datetime.now()
-
-                # Ejecutar la consulta con la fecha incluida
-                cursor.execute(query, (row['Operador'], plana, fecha_actual))
+                # Iterar sobre cada 'Plana' y crear un registro separado
+                for plana in ['Plana 1', 'Plana 2']:
+                    if not pd.isnull(row[plana]) and row[plana] != 0:
+                        # Obtener la fecha y hora actual
+                        fecha_actual = datetime.now()
+                        # Ejecutar la consulta con la fecha incluida
+                        cursor.execute(query, (row['Operador'], row[plana], fecha_actual))
             conn.commit()
             print("Datos insertados correctamente.")
         except Exception as e:
             print(f"Error al insertar los datos: {e}")
         finally:
             cursor.close()
-        conn.close()
+            conn.close()
     else:
         print("No se pudo establecer la conexión con la base de datos.")
         
@@ -841,7 +782,7 @@ def borrar_datos_antiguos():
             query = "DELETE FROM DIA_NYC WHERE FechaCreacion <= DATEADD(hour, -7, GETDATE())" #zona horaria en azure incorrecta
             cursor.execute(query)
             conn.commit()  # Confirma la transacción
-            print("Registros antiguos eliminados correctamente.")
+            print("Registros antiguos eliminados correctamente mayor a una hora")
         except Exception as e:
             print(f"Error al borrar datos: {e}")
         finally:
@@ -849,4 +790,3 @@ def borrar_datos_antiguos():
         conn.close()
     else:
         print("No se pudo establecer la conexión con la base de datos.")
-        
