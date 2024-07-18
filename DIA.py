@@ -8,6 +8,8 @@ import requests
 import urllib3
 from flask import Blueprint, render_template
 from sklearn.metrics import DistanceMetric
+import gdown
+import io
 
 from db_manager import fetch_data, fetch_data_PRO, fetch_data_DIA, create_engine_db_DIA
 
@@ -17,7 +19,8 @@ def index():
     global asignacion 
     asignacion  = None
     planas, Operadores, Cartas, Gasto, Km, Bloqueo, ETAs, Permisos, Op, Tractor, DataDIA, Dolly  = cargar_datos()
-    planasPatio = planas_en_patio(planas, DataDIA)
+    planasSAC = planas_sac()
+    planasPatio = planas_en_patio(planas, DataDIA, planasSAC)
     planasPorAsignar = procesar_planas(planasPatio)
     operadores_sin_asignacion = procesar_operadores(Operadores, DataDIA, Dolly)
     asignacionesPasadasOperadores=  asignacionesPasadasOp(Cartas)
@@ -45,7 +48,7 @@ def cargar_datos():
         AND CiudadDestino != 'MONTERREY'
         AND CiudadDestino != 'GUADALUPE'
         AND CiudadDestino != 'APODACA'
-        AND Remolque != 'P3169'
+        
     """
     consulta_operadores = """
         SELECT * 
@@ -82,8 +85,9 @@ def cargar_datos():
     
     return planas, Operadores, Cartas, Gasto, Km, Bloqueo, ETAs, Permisos, Op, Tractor, DataAzureDIA, Dolly
 
-def planas_en_patio(planas, DataDIA):
-    planas['Horas en patio'] = ((datetime.now() - planas['FechaEstatus']).dt.total_seconds() / 3600.0).round(1)
+def planas_en_patio(planas, DataDIA, planasSAC):
+    planas = pd.merge(planas, planasSAC, on='Remolque', how='left')
+    planas['Horas en patio'] = ((datetime.now() - planas['fecha de salida']).dt.total_seconds() / 3600.0).round(1)
     planas= planas[~planas['Remolque'].isin(DataDIA['Plana'])]
     planas.sort_values(by=['FechaEstatus'], ascending=True, inplace=True)
     planas.reset_index(drop=True, inplace=True)
@@ -101,8 +105,6 @@ def procesar_operadores(Operadores, DataDIA, Dolly):
         (DollyDisponibles['Unidad'] != 'U.O. 14 ACERO (PATIOS MX)')
     ]
 
-    
-    
     DollyDisponibles = DollyDisponibles[['IdDolly', 'ClaveDolly']]
         
     Operadores= pd.merge(Operadores, Dolly, left_on='DollyAsignado', right_on='ClaveDolly', how='left')
@@ -131,14 +133,15 @@ def procesar_operadores(Operadores, DataDIA, Dolly):
     Operadores.index += 1
     return Operadores
 
+
 def procesar_planas(planas):
     # Constantes
     distanciaMaxima = 220
     hourasMaxDifDestino = 22
-    
+               
     def mismoDestino(planas):
         # Se Ordenan
-        planas.sort_values(by=['FechaEstatus','CiudadDestino'], ascending=True, inplace=True)
+        planas.sort_values(by=['Horas en patio','CiudadDestino'], ascending=True, inplace=True)
         planas.reset_index(drop=True, inplace=True)
 
         # Clasificacion de Planas
@@ -628,7 +631,7 @@ def asignacion2(planasPorAsignar, calOperador, planas, Op, Tractor):
     f_concatenado= pd.merge(f_concatenado, Tractor, left_on='Tractor', right_on='ClaveTractor', how='left')
     
     #f_concatenado['IdOperador'] = f_concatenado['IdOperador'].astype(int)
-    f_concatenado = f_concatenado[['Ruta', 'remolque_a', 'remolque_b', 'Operador', 'Tiempo Disponible', 'IdOperador', 'IdTractor', 'Tractor', 'IdRemolque1', 'IdSolicitud1', 'IdRemolque2', 'IdSolicitud2', 'IdDolly']]
+    f_concatenado = f_concatenado[['Ruta', 'Operador', 'Tractor', 'remolque_a', 'remolque_b', 'Tiempo Disponible', 'IdOperador', 'IdTractor', 'IdRemolque1', 'IdSolicitud1', 'IdRemolque2', 'IdSolicitud2', 'IdDolly']]
     
     
     f_concatenado.rename(columns={
@@ -790,3 +793,20 @@ def borrar_datos_antiguos():
         conn.close()
     else:
         print("No se pudo establecer la conexión con la base de datos.")
+        
+def planas_sac():
+    url = 'https://drive.google.com/uc?id=1h3oynOXp11tKAkNmq4SkjBR8q_ZyJa2b'
+    path = gdown.download(url, output=None, quiet=False)  # Guarda el archivo temporalmente
+
+    # Abrir el archivo temporal en modo binario
+    with open(path, 'rb') as f:
+        data = io.BytesIO(f.read())  # Leer los datos del archivo y pasarlos a BytesIO
+
+    # Leer el archivo desde el buffer directamente en un DataFrame
+    df = pd.read_excel(data)
+    
+    # Ordenar el DataFrame por la columna 'Cita de descarga' en orden descendente
+    df = df.sort_values(by='fecha de salida', ascending=False, na_position='last')
+    df = df.groupby('Remolque')['fecha de salida'].max().reset_index()
+    
+    return df
