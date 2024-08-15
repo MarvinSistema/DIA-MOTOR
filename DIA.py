@@ -598,15 +598,6 @@ def planas_sac():
     if cached_data:
         print("Usando datos cacheados.")
         df = pickle.loads(cached_data)
-    else:
-        print("Leyendo y procesando archivo Excel.")
-        df = pd.read_excel('seguimiento_ternium.xlsx')
-        df = df.sort_values(by='fecha de salida', ascending=False, na_position='last')
-        df = df.groupby('Remolque')['fecha de salida'].max().reset_index()
-
-        # Guardar en caché
-        redis_client.setex(cache_key, timedelta(minutes=30), pickle.dumps(df))
-
     return df
 
 def api_spl_get():
