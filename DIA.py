@@ -21,7 +21,7 @@ from sqlalchemy import text
 
 asignacionDIA = Blueprint('asignacionDIA', __name__)
 @asignacionDIA.route('/')
-def index():
+def index(): 
     borrar_datos_antiguos()
     global asignacion 
     asignacion  = None
@@ -39,7 +39,7 @@ def index():
     asignacion = asignacion2(emparejamientosPla, calOperadores, planas, Op, Tractor)
     api_spl()
     insertar_datos()
-    datos_html = asignacion .to_html()
+    datos_html = asignacion.to_html()
     
     return render_template('asignacionDIA.html', datos_html=datos_html)
 
@@ -664,19 +664,19 @@ def emparejamientosPlanas(planas, DataDIA, planasSAC, IdSolicitudYaAsignado):
     planas = planas[planas['CiudadDestino'] != 'ALLENDE'] 
     planas.loc[:, 'CiudadDestino'] = planas['CiudadDestino'].str.replace(' ', '') 
     planas.loc[:, 'CiudadDestino'] = planas['CiudadDestino'].str.replace('JALISCO', 'GUADALAJARA')     
-
+    
     Ubicaciones = pd.DataFrame({
-        'City': ['CUAUTITLANIZCALLI', 'VICTORIA', 'SANJUANDELRIO', 'ELMARQUES', 'JALISCO', 'CORREGIDORA', 'SANTACRUZ', 'APIZACO', 'SAYULITA', 'SANFRANSICODELOSROMOS', 'OCOTLAN', 'SANTACRUZXOXOCOTLAN', 'JIUTEPEC,MOR', 'ELPRIETO,VERACRUZ', 'GUADALUPEZACATECAS', 'TEZOYUCA', 'CUAUTLA', 'CDVALLES', 'ACAPULCO', 'XALAPA,VER','AMATLANDELOSREYES', 'CUAUTLA,MORELOS','QUERETARO', 'GUADALAJARA', 'PUERTOVALLARTA', 'MAZATLAN', 'CULIACAN', 'LEON', 'MEXICO', 'SANLUISPOTOSI', 'VERACRUZ', 'TULTITLAN', 'JIUTEPEC', 'VILLAHERMOSA', 'PACHUCADESOTO', 'COLON', 'MERIDA', 'SALTILLO', 'CHIHUAHUA', 'TUXTLAGTZ', 'CORDOBA',
+        'City': ['TEPATITLANDEMORELOS','CUAUTITLANIZCALLI', 'VICTORIA', 'SANJUANDELRIO', 'ELMARQUES', 'JALISCO', 'CORREGIDORA', 'SANTACRUZ', 'APIZACO', 'SAYULITA', 'SANFRANSICODELOSROMOS', 'OCOTLAN', 'SANTACRUZXOXOCOTLAN', 'JIUTEPEC,MOR', 'ELPRIETO,VERACRUZ', 'GUADALUPEZACATECAS', 'TEZOYUCA', 'CUAUTLA', 'CDVALLES', 'ACAPULCO', 'XALAPA,VER','AMATLANDELOSREYES', 'CUAUTLA,MORELOS','QUERETARO', 'GUADALAJARA', 'PUERTOVALLARTA', 'MAZATLAN', 'CULIACAN', 'LEON', 'MEXICO', 'SANLUISPOTOSI', 'VERACRUZ', 'TULTITLAN', 'JIUTEPEC', 'VILLAHERMOSA', 'PACHUCADESOTO', 'COLON', 'MERIDA', 'SALTILLO', 'CHIHUAHUA', 'TUXTLAGTZ', 'CORDOBA',
                     'TOLUCA', 'CIUDADHIDALGOCHP', 'CAMPECHE', 'ATITALAQUIA', 'MATAMOROS', 'ZAPOPAN', 'CIUDADCUAHUTEMOCCHH', 'MORELIA', 'TLAXCALA', 'GUADALUPE', 'SANTACRUZSON', 'LASVARAS', 'PACHUCA', 'CIUDADJUAREZ', 'TLAJOMULCO', 'PIEDRASNEGRAS', 'RAMOSARIZPE', 'ORIZABA', 'TAPACHULA', 'TEPATITLAN', 'TLAQUEPAQUE', 'TEAPEPULCO', 'LABARCA', 'ELMARQUEZ', 'CIUDADVICTORIA', 'NUEVOLAREDO', 'TIZAYUCA,HIDALGO', 'ELSALTO', 'OCOTLANJAL', 'TEZONTEPEC', 'ZAPOTILTIC', 'PASEOELGRANDE', 'POZARICA', 'JACONA', 'FRESNILLO', 'PUEBLA', 'TUXTLAGUTIERREZ', 'PLAYADELCARMEN', 'REYNOSA', 'MEXICALI', 'TEPEJIDELORODEOCAMPO',
-                    'LEON', 'CUERNAVACA', 'CHETUMAL', 'CHIHUAHUA', 'SILAO', 'ACAPULCODEJUAREZ', 'AGUASCALIENTES', 'TIJUANA', 'OCOSINGO', 'MONCLOVA', 'OAXACA', 'SOLIDARIDAROO', 'JIUTEPEC', 'ELPRIETO', 'TORREON', 'HERMOSILLO', 'CELAYA', 'CANCUN', 'URUAPAN', 'ALTAMIRA', 'COATZACUALCOS', 'IRAPUATO', 'CASTAÑOS', 'DURANGO', 'COLON1', 'CIUDADVALLLES', 'MANZANILLA', 'TAMPICO', 'GOMEZPALACIO', 'ZACATECAS', 'SALAMANCA', 'COMITANDEDOMINGUEZ', 'UMAN', 'TUXTEPEC', 'ZAMORA', 'CORDOBA', 'MONTERREY', 'PENJAMO', 'NOGALES', 'RIOBRAVO', 'CABORCA', 'FRONTERACOAHUILA', 'LOSMOCHIS', 'KANASIN', 'ARRIAGACHIAPAS', 'VALLEHERMOSA', 'SANJOSEITURBIDE', 'MAZATLAN', 'TEHUACAN', 'CHILTEPEC', 'CHILPANCINGODELOSBRAVO'],
-        'Latitude': [19.642906, 23.737420, 20.389307, 20.622969, 20.664082, 20.542695, 31.233600, 19.415142, 20.867196, 22.074109, 20.353894, 17.028832, 18.894928, 22.221429, 22.763576, 19.595099, 18.831580, 22.998189, 16.889844, 19.533927, 18.846950, 18.836561, 20.592275, 20.74031, 20.655893, 23.255931, 24.800964, 21.133941, 19.440265, 22.158710, 19.19002, 19.647433, 18.891529, 17.992561, 20.106154, 20.781414, 20.984380, 25.427049, 28.643361, 16.761753, 18.890666,
+                    'LEONS', 'CUERNAVACA', 'CHETUMAL', 'CHIHUAHUA', 'SILAO', 'ACAPULCODEJUAREZ', 'AGUASCALIENTES', 'TIJUANA', 'OCOSINGO', 'MONCLOVA', 'OAXACA', 'SOLIDARIDAROO', 'JIUTEPEC', 'ELPRIETO', 'TORREON', 'HERMOSILLO', 'CELAYA', 'CANCUN', 'URUAPAN', 'ALTAMIRA', 'COATZACUALCOS', 'IRAPUATO', 'CASTAÑOS', 'DURANGO', 'COLON1', 'CIUDADVALLLES', 'MANZANILLA', 'TAMPICO', 'GOMEZPALACIO', 'ZACATECAS', 'SALAMANCA', 'COMITANDEDOMINGUEZ', 'UMAN', 'TUXTEPEC', 'ZAMORA', 'CORDOBA', 'MONTERREY', 'PENJAMO', 'NOGALES', 'RIOBRAVO', 'CABORCA', 'FRONTERACOAHUILA', 'LOSMOCHIS', 'KANASIN', 'ARRIAGACHIAPAS', 'VALLEHERMOSA', 'SANJOSEITURBIDE', 'MAZATLAN', 'TEHUACAN', 'CHILTEPEC', 'CHILPANCINGODELOSBRAVO'],
+        'Latitude': [20.807473, 19.642906, 23.737420, 20.389307, 20.622969, 20.664082, 20.542695, 31.233600, 19.415142, 20.867196, 22.074109, 20.353894, 17.028832, 18.894928, 22.221429, 22.763576, 19.595099, 18.831580, 22.998189, 16.889844, 19.533927, 18.846950, 18.836561, 20.592275, 20.74031, 20.655893, 23.255931, 24.800964, 21.133941, 19.440265, 22.158710, 19.19002, 19.647433, 18.891529, 17.992561, 20.106154, 20.781414, 20.984380, 25.427049, 28.643361, 16.761753, 18.890666,
                        19.271311, 14.679697, 18.833447, 20.054095, 25.845915, 20.76705, 28.431062, 19.736983, 19.500336, 25.717427, 31.239198, 28.165034, 20.13492, 31.785672, 20.488792, 28.721685, 25.594781, 18.88138, 14.950696, 20.842635, 20.646152, 19.799357, 20.313766, 20.958186, 23.786371, 27.541875, 19.863533, 20.531878, 20.380148, 19.891505, 19.641563, 20.566394, 20.576162, 19.971759, 23.215653, 19.132065, 16.801565, 20.707474, 26.128212, 32.6718, 19.943972,
                         21.188758, 18.998997, 18.561445, 31.542897, 20.968175, 16.923231, 21.942294, 32.550529, 16.922181, 26.965938, 17.128621, 20774439, 18.932162, 22.22124, 25.622625, 29.098203, 20.581304, 21.208637, 19.432413, 22.430696, 22.430608, 20.725167, 20.828685, 24.077945, 22.027654, 20.025186, 19.127328, 22.323528, 25.629602, 22.782732, 20.604713, 16.2059, 20.914188, 18.108973, 20.018848, 18.911559, 25.79573, 20.444102, 31.331515, 26.007962, 30.751014, 26.976145, 25.831174, 20.979043, 16.251855, 25.690649, 21.020823, 23.316277, 18.504335, 18.908622, 17.592174],
-        'Longitude': [-99.221770, -99.140663, -99.982418, -100.275149, -103.343537, -100.451902, -110.596481, -98.139633, -105.439843, -102.270805, -102.772942, -96.735289, -99.178066, -97.918783, -102.547755, -98.910005, -98.943625, -99.010334, -99.830687, -96.909218, -96.914283, -98.944068, -100.394273, -103.31312, -105.221967, -106.412165, -107.390388, -101.661519, -99.206780, -100.970141, -96.196430, -99.164822, -99.181056, -92.942980, -98.759106, -100.047289, -89.620138, -100.985244, -106.056315, -93.108217, -96.932524,
+        'Longitude': [-102.769263, -99.221770,-99.140663, -99.982418, -100.275149, -103.343537, -100.451902, -110.596481, -98.139633, -105.439843, -102.270805, -102.772942, -96.735289, -99.178066, -97.918783, -102.547755, -98.910005, -98.943625, -99.010334, -99.830687, -96.909218, -96.914283, -98.944068, -100.394273, -103.31312, -105.221967, -106.412165, -107.390388, -101.661519, -99.206780, -100.970141, -96.196430, -99.164822, -99.181056, -92.942980, -98.759106, -100.047289, -89.620138, -100.985244, -106.056315, -93.108217, -96.932524,
                         -99.667407, -92.151656, -90.286039, -99.222389, -97.503895, -103.351047, -106.83201, -101.204422, -98.158429, -100.181515, -110.59637, -105.340582, -98.772788, -106.566775, -103.445088, -100.547409, -100.900214, -97.104977, -92.254966, -102.79309, -103.317318, -98.555426, -102.541315, -100.2477, -99.16679, -99.565339, -98.976743, -103.181408, -102.777496, -98.814611, -103.449286, -100.679298, -97.430099, -102.298419, -102.850368, -98.222853, -93.116207, -87.07644, -98.343761, -115.385465, -99.339322,
                         -101.768658, -99.257945, -88.27958, -107.90993, -101.415423, -99.825972, -102.298616, -116.875228, -92.093952, -101.400616, -97.76784, -86.986023, -99.181586, -97.917121, -103.387956, -110.978133, -100.812923, -86.837061, -102.021193, -97.947615, -94.417513, -101.378726, -101.42206, -104.66471, -99.024839, -99.025514, -104.393928, -97.88042, -103.500552, -102.573756, -101.174834, -92.132644, -89.695333, -96.141711, -102.285924, -96.98147, -100.385905, -101.730812, -110.932889, -98.122363, -112.157303, -101.436711, -108.989827, -89.5488, -93.920658, -97.810778, -100.395074, -106.478543, -97414124, -97.047666, -99.51663]
     })
-
+        
     def parejas_unicas (planas, distancia_maxima=190):
 
       def match_entre_unicos_mayor23():
@@ -687,6 +687,7 @@ def emparejamientosPlanas(planas, DataDIA, planasSAC, IdSolicitudYaAsignado):
         #planas_unicas.loc[:, 'CiudadDestino'] = planas_unicas['CiudadDestino'].str.replace(' ', '')
         planas_unicas = planas_unicas.merge(Ubicaciones, left_on='CiudadDestino', right_on='City', how='left')
         planas_unicas = planas_unicas[planas_unicas['Horas en patio'] >23]
+  
         if planas_unicas.empty:
               return pd.DataFrame(), planas_unicas, planas
             
@@ -694,7 +695,6 @@ def emparejamientosPlanas(planas, DataDIA, planasSAC, IdSolicitudYaAsignado):
         dist = DistanceMetric.get_metric('haversine')
         coords = np.radians(planas_unicas[['Latitude', 'Longitude']])
         matriz_distancia = dist.pairwise(coords) * 6371  # Convert to kilometers
-
        
         # Listas para almacenar las parejas formadas
         parejas = []
@@ -744,7 +744,7 @@ def emparejamientosPlanas(planas, DataDIA, planasSAC, IdSolicitudYaAsignado):
             planas_unicas_restantes = planas_unicas.copy()
         
         return parejas_df, planas_unicas_restantes, planas_totales_restante
-    
+
       def match_unicos_conNones_mayor23():
             _, planas_unicas_restantes, planas_totales_restante = match_entre_unicos_mayor23()
             planas_totales_restante_23hrs = planas_totales_restante[planas_totales_restante['Horas en patio'] > 23]
@@ -756,12 +756,12 @@ def emparejamientosPlanas(planas, DataDIA, planasSAC, IdSolicitudYaAsignado):
             impar_values = counts[counts % 2 != 0].index
             planas_totales_restante_23hrs_nones = planas_totales_restante_23hrs[planas_totales_restante_23hrs['CiudadDestino'].isin(impar_values)].copy()
 
-            planas_totales_restante_23hrs_nones.loc[:, 'unico'] = planas_totales_restante_23hrs_nones['CiudadDestino'].apply(
+            planas_totales_restante_23hrs_nones['unico'] = planas_totales_restante_23hrs['CiudadDestino'].apply(
                 lambda x: 'si' if x in planas_unicas_restantes['CiudadDestino'].values else 'no'
             )
-
+            
             planas_totales_restante_23hrs_nones = planas_totales_restante_23hrs_nones.merge(Ubicaciones, left_on='CiudadDestino', right_on='City', how='left')
-            f = planas_totales_restante_23hrs_nones.copy()
+
             if planas_totales_restante_23hrs_nones.empty:
                 return pd.DataFrame(), planas_unicas_restantes, planas_totales_restante
 
@@ -791,6 +791,7 @@ def emparejamientosPlanas(planas, DataDIA, planasSAC, IdSolicitudYaAsignado):
                     if posibles_parejas:
                         # Ordenar las posibles parejas por horas de diferencia y luego por distancia
                         posibles_parejas.sort(key=lambda x: (x[2], x[1]))
+                        print(posibles_parejas)
                         mejor_pareja = posibles_parejas[0]
                         j = mejor_pareja[0]
                         fila_siguiente = planas_totales_restante_23hrs_nones.iloc[j]
@@ -828,6 +829,7 @@ def emparejamientosPlanas(planas, DataDIA, planasSAC, IdSolicitudYaAsignado):
                 planas_totales_restante = planas_totales_restante[~planas_totales_restante['IdSolicitud'].isin(ids_emparejados)]
                 planas_unicas_restantes = planas_unicas_restantes[~planas_unicas_restantes['IdSolicitud'].isin(ids_emparejados)]
 
+
             return parejas_df, planas_unicas_restantes, planas_totales_restante
       
       def match_unicos_con_pares_may23():
@@ -856,11 +858,20 @@ def emparejamientosPlanas(planas, DataDIA, planasSAC, IdSolicitudYaAsignado):
         dist = DistanceMetric.get_metric('haversine')
         coords = np.radians(planas_totales_restante_pares_mayor23hrs[['Latitude', 'Longitude']])
         matriz_distancia = dist.pairwise(coords) * 6371  # Convert to kilometers
-       
+        planas_totales_restante_pares_mayor23hrs['IndiceGrupo'] = planas_totales_restante_pares_mayor23hrs.groupby('CiudadDestino').cumcount() + 1  
+        planas_totales_restante_pares_mayor23hrs = planas_totales_restante_pares_mayor23hrs.sort_values(by='Horas en patio', ascending=False)
+        planas_totales_restante_pares_mayor23hrs['NuevoIndice'] = range(1, len(planas_totales_restante_pares_mayor23hrs) + 1)
+        planas_totales_restante_pares_mayor23hrs = planas_totales_restante_pares_mayor23hrs[planas_totales_restante_pares_mayor23hrs['IndiceGrupo'] % 2 != 0]
+        planas_totales_restante_pares_mayor23hrs['unico'] = planas_totales_restante_pares_mayor23hrs['unico'].replace({'si': 1, 'no': 0})
+        planas_totales_restante_pares_mayor23hrs = planas_totales_restante_pares_mayor23hrs.sort_values(by='unico', ascending=False)
+        planas_totales_restante_pares_mayor23hrs['unico'] = planas_totales_restante_pares_mayor23hrs['unico'].replace({1: 'si', 0: 'no'})
+
+ 
         # Listas para almacenar las parejas formadas
         parejas = []
 
         # Iterar sobre el DataFrame restante
+
         i = 0
         while i < len(planas_totales_restante_pares_mayor23hrs):
             fila_actual = planas_totales_restante_pares_mayor23hrs.iloc[i]
@@ -893,7 +904,6 @@ def emparejamientosPlanas(planas, DataDIA, planasSAC, IdSolicitudYaAsignado):
                                 i = -1
                                 break
             i += 1
-
         # Convertir las parejas a un DataFrame
         parejas_df = pd.DataFrame(parejas)
         
@@ -906,17 +916,16 @@ def emparejamientosPlanas(planas, DataDIA, planasSAC, IdSolicitudYaAsignado):
         
         return parejas_df, planas_unicas_restantes, planas_totales_restante
       
-      def match_entre_unicos_menor23():
+      def match_entre_unicos_conmenores23():
         _, planas_unicas_restantes, planas_totales_restante = match_unicos_con_pares_may23()
         
         planas_unicas_restantes['unico'] = 'si'
+        planas_unicas_restantes = planas_unicas_restantes[planas_unicas_restantes['Horas en patio'] > 23]
         planas_totales_restante_menor23hrs = planas_totales_restante[planas_totales_restante['Horas en patio'] <=23]
         planas_totales_restante_menor23hrs = planas_totales_restante_menor23hrs.merge(Ubicaciones, left_on='CiudadDestino', right_on='City', how='left')
-        planas_totales_restante_menor23hrs['unico'] = 'no'
-        
-        
+        #planas_totales_restante_menor23hrs['unico'] = 'no'
+               
         planas_totales_restante_menor23hrs= pd.concat([planas_unicas_restantes, planas_totales_restante_menor23hrs], ignore_index=True)
-        
         
         if planas_totales_restante_menor23hrs.empty:
           return pd.DataFrame(), planas_unicas_restantes, planas_totales_restante
@@ -979,14 +988,14 @@ def emparejamientosPlanas(planas, DataDIA, planasSAC, IdSolicitudYaAsignado):
         parejas_df1, _, _ = match_entre_unicos_mayor23()
         parejas_df2, _, _ = match_unicos_con_pares_may23()
         parejas_df3, _, _ = match_unicos_conNones_mayor23()
-        parejas_df4, _, planas_totales_restante = match_entre_unicos_menor23()
+        parejas_df4, _, planas_totales_restante = match_entre_unicos_conmenores23()
         
         parejasFin = pd.concat([parejas_df1, parejas_df2, parejas_df3, parejas_df4], ignore_index=True) 
 
         return parejasFin, planas_totales_restante
       
-      return match_fin()
-          
+      return match_fin()  
+
     def emparejar_misma_ciudad_mayor23(planas):
       
         _, planas_restante = parejas_unicas (planas, 190)
@@ -1032,13 +1041,10 @@ def emparejamientosPlanas(planas, DataDIA, planasSAC, IdSolicitudYaAsignado):
     def emparejar_destinos_cercanos_mayor23(planas, distancia_maxima):
         
         _, data_restante = emparejar_misma_ciudad_mayor23(planas)
-        
-
         # Agregar coordenadas al DataFrame restante
         data_restante.loc[:, 'CiudadDestino'] = data_restante['CiudadDestino'].str.replace(' ', '')
-
         data_restante = data_restante.merge(Ubicaciones, left_on='CiudadDestino', right_on='City', how='left')
-        
+
         
         if data_restante.empty:
             return pd.DataFrame(), data_restante
@@ -1098,8 +1104,7 @@ def emparejamientosPlanas(planas, DataDIA, planasSAC, IdSolicitudYaAsignado):
         # Filtrar las planas con más de 23 horas en el patio
         _, planas_restante = emparejar_destinos_cercanos_mayor23(planas, distancia_maxima=190)
         df_filtrado = planas_restante.copy()
-        # df_filtrado = planas[planas['Horas en patio'] < 0]
-        
+        #df_filtrado = planas_restante[planas_restante['Horas en patio'] < 24]
         # Listas para almacenar las parejas formadas
         parejas = []
         
@@ -1143,19 +1148,12 @@ def emparejamientosPlanas(planas, DataDIA, planasSAC, IdSolicitudYaAsignado):
        
     def emparejamiento_fin(planas):
         r1,_ = parejas_unicas (planas, distancia_maxima=190)
-
         r2,_ = emparejar_misma_ciudad_mayor23(planas)
-
         r3,_ = emparejar_destinos_cercanos_mayor23(planas, distancia_maxima=200)
-
         r4,_ = emparejar_misma_ciudad_menor23(planas)
-
-
+    
         rf = pd.concat([r1, r2, r3, r4], ignore_index=True)
-    
-        
-    
-  
+          
         rf['Horas en patio'] = rf[['Horas en patio1', 'Horas en patio2']].max(axis=1)
         rf['ValorViaje'] = rf['ValorViaje1'] + rf['ValorViaje2']
         rf= rf.sort_values(by='Horas en patio', ascending=False)
@@ -1177,7 +1175,7 @@ def emparejamientosPlanas(planas, DataDIA, planasSAC, IdSolicitudYaAsignado):
         rf.index = rf.index + 1
 
         return rf
-    
-            
-        
+
+                  
     return emparejamiento_fin(planas)
+ 
