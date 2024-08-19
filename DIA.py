@@ -1154,25 +1154,30 @@ def emparejamientosPlanas(planas, DataDIA, planasSAC, IdSolicitudYaAsignado):
     
         rf = pd.concat([r1, r2, r3, r4], ignore_index=True)
           
-        rf['Horas en patio'] = rf[['Horas en patio1', 'Horas en patio2']].max(axis=1)
-        rf['ValorViaje'] = rf['ValorViaje1'] + rf['ValorViaje2']
-        rf= rf.sort_values(by='Horas en patio', ascending=False)
-        
-        #rf = rf[['Destino', 'Remolque1', 'Remolque2', 'Horas en patio']]
-        rf = rf[['Destino', 'Remolque1', 'Remolque2', 'Horas en patio1', 'Horas en patio2', 'ValorViaje']]
-        
-        # Renombrar las columnas del DataFrame
-        rf.rename(columns={
-            'Destino': 'Ruta',
-            'Remolque1': 'remolque_a',
-            'Remolque2': 'remolque_b',
-            'Horas en patio1': 'Horas en Patio',
-            'ValorViaje': 'Monto'
-        }, inplace=True)
-        
-        # Reiniciar el índice comenzando desde 1
-        rf.reset_index(drop=True, inplace=True)
-        rf.index = rf.index + 1
+        if 'Horas en patio1' in rf.columns and 'Horas en patio2' in rf.columns:
+            rf['Horas en patio'] = rf[['Horas en patio1', 'Horas en patio2']].max(axis=1)
+            rf['ValorViaje'] = rf['ValorViaje1'] + rf['ValorViaje2']
+            rf= rf.sort_values(by='Horas en patio', ascending=False)
+            
+            #rf = rf[['Destino', 'Remolque1', 'Remolque2', 'Horas en patio']]
+            rf = rf[['Destino', 'Remolque1', 'Remolque2', 'Horas en patio1', 'Horas en patio2', 'ValorViaje']]
+            
+            # Renombrar las columnas del DataFrame
+            rf.rename(columns={
+                'Destino': 'Ruta',
+                'Remolque1': 'remolque_a',
+                'Remolque2': 'remolque_b',
+                'Horas en patio1': 'Horas en Patio',
+                'ValorViaje': 'Monto'
+            }, inplace=True)
+            
+            # Reiniciar el índice comenzando desde 1
+            rf.reset_index(drop=True, inplace=True)
+            rf.index = rf.index + 1
+        else:
+        # Crear un DataFrame vacío con las columnas mencionadas
+            rf = pd.DataFrame(columns=['Ruta', 'remolque_a', 'remolque_b', 'Horas en Patio', 'Monto'])
+
 
         return rf
 
