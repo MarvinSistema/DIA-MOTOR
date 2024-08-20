@@ -1,6 +1,6 @@
 import os
 from datetime import datetime, timedelta
-
+from sqlalchemy import text
 import networkx as nx
 import numpy as np
 import pandas as pd
@@ -16,8 +16,6 @@ from actualizar_cache import actualizar_cache
 import redis
 import pickle
 pd.set_option('future.no_silent_downcasting', True) #quita los warnings
-
-from sqlalchemy import text
 
 asignacionDIA = Blueprint('asignacionDIA', __name__)
 @asignacionDIA.route('/')
@@ -282,9 +280,13 @@ def asignacionesPasadasOp(Cartas):
     max_value = CP['PuntajeBruto'].max()
 
     #Normalizo entre 1-50 el puntaje buruto
-    CP['CalificacionVianjesAnteiores'] =  25-(1 + (24 * (CP['PuntajeBruto'] - min_puntaje_posible) / (max_value - min_puntaje_posible)))
+    CP['CalificacionVianjesAnteiores'] =  50-(1 + (49 * (CP['PuntajeBruto'] - min_puntaje_posible) / (max_value - min_puntaje_posible)))
     CP['CalificacionVianjesAnteiores'] = CP['CalificacionVianjesAnteiores'].replace([float('inf'), -float('inf')], 0)
     CP['CalificacionVianjesAnteiores'] = CP['CalificacionVianjesAnteiores'].round().astype(int)
+    #Operadores con viajes menor a 2
+    CP['viajes'] = CP['Bueno']+CP['Malo']+CP['Regular']
+    CP.loc[CP['viajes'] == 1, 'CalificacionVianjesAnteiores'] = np.random.randint(10, 31, size=len(CP[CP['viajes'] == 1]))
+
     CP = CP.reset_index()
     return CP
 
@@ -361,7 +363,9 @@ def eta(ETAi):
     if 'Cumple' in ETAi.columns and 'No Cumple' in ETAi.columns:
         ETAi['Cumple'] = ETAi['Cumple'].fillna(0)
         ETAi['No Cumple'] = ETAi['No Cumple'].fillna(0)
+        ETAi['Total'] = ETAi['No Cumple']+ETAi['Cumple']
         ETAi['Calificacion SAC'] = ((ETAi['Cumple'] / (ETAi['Cumple'] + ETAi['No Cumple'])) * 10).round(0).astype(int)
+        ETAi.loc[ETAi['Total'] < 1, 'Calificacion SAC'] = np.random.randint(10, 31, size=len(ETAi[ETAi['Total'] < 1]))
     else:
         print("Las columnas necesarias 'Cumple' o 'No Cumple' no están presentes.")
         return ETAi  # Retorna el DataFrame sin la columna 'Calificacion SAC'
@@ -379,15 +383,21 @@ def asignacion2(planasPorAsignar, calOperador, planas, Op, Tractor):
     
 
     calOperador= calOperador[calOperador['Bloqueado Por Seguridad'].isin(['No'])]
+    
     calOperador= calOperador[calOperador['Permiso'].isin(['No'])]
     calOperador = calOperador[calOperador['UOperativa'].isin(['U.O. 01 ACERO', 'U.O. 02 ACERO', 'U.O. 03 ACERO', 'U.O. 04 ACERO', 'U.O. 06 ACERO (TENIGAL)', 'U.O. 07 ACERO','U.O. 39 ACERO'])]
     calOperador = calOperador.sort_values(by=['CalFinal', 'Tiempo Disponible'], ascending=[False, False])
     calOperador = calOperador.reset_index(drop=True)
     calOperador.index = calOperador.index + 1
     cantidadOperadores = len(calOperador)
+    
+
             
 
     planasPorAsignarF = planasPorAsignar.head(cantidadOperadores)
+    if 'Horas en patio2' not in planasPorAsignarF.columns:
+        planasPorAsignarF['Horas en patio2'] = 0  # Asignar un valor por defecto o manejarlo según sea necesario
+
     planasPorAsignarF['HoraMayor'] = planasPorAsignarF[['Horas en Patio', 'Horas en patio2']].max(axis=1)
 
     
