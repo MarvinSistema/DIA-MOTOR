@@ -594,7 +594,7 @@ def borrar_datos_antiguos():
     else:
         print("No se pudo establecer la conexión con la base de datos.")
         
-# Conectar a Redis
+# Conectar a Redis (heroku)
 redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')
 redis_client = redis.StrictRedis.from_url(redis_url)
 def planas_sac():
